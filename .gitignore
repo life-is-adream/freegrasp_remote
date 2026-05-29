@@ -85,3 +85,19 @@ data/output/
 *.jpg
 *.png
 
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.class
+
+# OS generated files
+.DS_Store
+*.swp
+
+# Dataset / large binary files
+data/
+*.parquet
+*.tar
+logs/
+
