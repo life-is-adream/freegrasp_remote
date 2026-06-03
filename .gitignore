@@ -78,26 +78,17 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Dataset / large binary files
-data/npz_file/
-data/output/
-*.npz
-*.jpg
-*.png
-
-
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*.class
-
-# OS generated files
-.DS_Store
-*.swp
-
-# Dataset / large binary files
+# Dataset, logs, caches, and large/generated files
 data/
-*.parquet
-*.tar
 logs/
-
+log/
+.codegraph/
+.code-review-graph/
+*.parquet
+*.npz
+*.tar
+*.pt
+*.pth
+*.ckpt
+*.log
+*.ipynb

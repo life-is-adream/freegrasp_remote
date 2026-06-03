@@ -80,7 +80,7 @@ def compute_grasp_pose(path, camera_info):
         }
 
         response = client.chat.completions.create(
-            model="qwen3-vl-flash",
+            model="qwen3.6-plus",
             messages=messages,
             temperature=0,
             max_tokens=713,
@@ -90,12 +90,13 @@ def compute_grasp_pose(path, camera_info):
         )
 
         output = response.choices[0].message.content
+        output = strip_thinking_tags(output)
         result = process_grasping_result(output, text)
         
-        # Goal object predicted by GPT-4o (resoning part)
+        # Goal object predicted by the model (reasoning part)
         goal = result['class_name']
-        goal_id = result['selected_object_id']
-        goal_coor = get_coordinates(labeled_text, goal_id)
+        goal_id = result.get('selected_object_id')
+        goal_coor = get_coordinates(labeled_text, goal_id) if goal_id is not None else None
         
         with open(f"{path}/log.txt", "a") as file:
             file.write(f"I have to remove the object with id = {str(goal_id)}, named {goal}")
@@ -104,8 +105,14 @@ def compute_grasp_pose(path, camera_info):
 
         # Selected the mask of the object we want based on the coordinates generate from molmo (if there are multi same class objects)
         goal_mask, mask_index = get_goal_mask_with_index(masks, goal_coor)
-        goal_bbox = boxes[mask_index]
-        goal_bbox = goal_bbox.cpu().numpy()
+
+        if goal_mask is None or mask_index is None:
+            best_index = np.argmax(logits.cpu().numpy())
+            goal_mask = masks[best_index]
+            goal_bbox = boxes[best_index].cpu().numpy()
+        else:
+            goal_bbox = boxes[mask_index]
+            goal_bbox = goal_bbox.cpu().numpy()
 
         cropping_box = create_cropping_box_from_boxes(
             goal_bbox, (img_ori.shape[1], img_ori.shape[0]))

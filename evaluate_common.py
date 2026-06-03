@@ -2,15 +2,15 @@ import os
 
 # Disable proxies and use HF mirror to prevent SSLEOFError
 for k in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY", "all_proxy"]:
-    os.environ.pop(k, None)
+os.environ.pop(k, None)
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-os.environ.setdefault("DASHSCOPE_API_KEY", "sk-35fc45d726354c7a835f17e993809fe2")
+# Set DASHSCOPE_API_KEY in the environment before running DashScope calls.
 # Force PyTorch SDPA to NOT use flash_attn (cu123 flash-attn is incompatible with CUDA 12.4)
 os.environ["PYTORCH_SDP_DISABLE_FLASH_ATTENTION"] = "1"
 
 import pandas as pd
 
-from calculate_SR import calculate_accuracy
+from calculate_SR import calculate_accuracy, calculate_reasoning_accuracy
 from molmo_eval import batch_process_molmo
 from reasoning_eval import process_dataset
 
@@ -45,7 +45,7 @@ def prepare_subset(df: pd.DataFrame, subset_name: str, selected_split: str) -> p
     return split_df[(split_df["difficulty"] == difficulty) & (split_df["ambiguious"] == ambiguous)]
 
 
-def evaluate_subset(subset_name: str, selected_split: str = "0") -> float:
+def evaluate_subset(subset_name: str, selected_split: str = "0", output_dir: str = "data/output") -> dict:
     os.makedirs(MOLMO_OUTPUT_DIR, exist_ok=True)
 
     df = load_dataset()
@@ -57,6 +57,9 @@ def evaluate_subset(subset_name: str, selected_split: str = "0") -> float:
         f"of [SET {subset_name}]: {len(selected_subset)}"
     )
 
-    output_json_path = f"data/output/out_{subset_name}.json"
+    output_json_path = os.path.join(output_dir, f"out_{subset_name}.json")
     process_dataset(selected_subset, NPZ_DIR, MOLMO_OUTPUT_DIR, output_json_path)
-    return calculate_accuracy(output_json_path)
+    return {
+        "ssr": calculate_accuracy(output_json_path),
+        "rsr": calculate_reasoning_accuracy(output_json_path),
+    }

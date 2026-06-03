@@ -2,9 +2,9 @@ import os
 
 # Disable proxies and use HF mirror to prevent SSLEOFError
 for k in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY", "all_proxy"]:
-    os.environ.pop(k, None)
+os.environ.pop(k, None)
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-os.environ.setdefault("DASHSCOPE_API_KEY", "sk-35fc45d726354c7a835f17e993809fe2")
+# Set DASHSCOPE_API_KEY in the environment before running DashScope calls.
 # Force PyTorch SDPA to NOT use flash_attn (cu123 flash-attn is incompatible with CUDA 12.4)
 os.environ["PYTORCH_SDP_DISABLE_FLASH_ATTENTION"] = "1"
 

@@ -30,7 +30,11 @@ def get_goal_mask_with_index(masks, goal_coor):
     """
     Select the best mask (and its index) that contains the goal coordinate.
     If none contain the coordinate, select the closest one.
+    Returns (None, None) if no valid mask is found.
     """
+    if goal_coor is None or masks is None or len(masks) == 0:
+        return None, None
+
     x, y = goal_coor
     best_mask = None
     selected_index = None
@@ -102,6 +106,12 @@ def process_grasping_result(output, text):
         "selected_object_id": object_id,  # Target object ID
         "class_name": class_name  # Target object class name
     }
+
+
+def strip_thinking_tags(text):
+    """Remove <think>...</think> tags from thinking model responses."""
+    import re as _re
+    return _re.sub(r'<think>.*?</think>', '', text, flags=_re.DOTALL).strip()
 
 
 
@@ -213,7 +223,13 @@ def parse_points_with_id(file_path):
     return parsed_data, molmo_to_gt_map, lines
 
 
-def get_prediction_result(image, path, scene_number, text):
+def get_prediction_result(image, path, scene_number, text, return_metadata=False):
+    reasoning_metadata = {
+        "selected_object_id": None,
+        "selected_gt_id": None,
+        "valid_selected_id": False,
+    }
+
     try:
         scene_path = os.path.join(path)
         image_path = os.path.join(scene_path, f"{scene_number}.png")
@@ -247,7 +263,7 @@ def get_prediction_result(image, path, scene_number, text):
                 "Given a target object description as input, determine the first object that needs to be grasped to enable picking the target object. If the target object is free of obstacles, return the target object ID itself. Otherwise, identify an object that is occluding the target and is itself free of obstacles. If multiple objects could be removed, return any one valid option."
 
                 "Output Format:"
-                    "The output should only be the object ID of the first object to grasp, must formatted as: [object_id, color class_name]\n"
+                    "IMPORTANT: Your final answer must ONLY contain the object ID, formatted exactly as: [object_id, class_name]. Do not include any other text, explanation, or reasoning in your final answer.\n"
                 )
             },
             {
@@ -260,7 +276,7 @@ def get_prediction_result(image, path, scene_number, text):
         ]
 
         response = client.chat.completions.create(
-            model="qwen3-vl-flash",
+            model="qwen3.6-plus",
             messages=messages,
             temperature=0,
             max_tokens=713,
@@ -271,11 +287,16 @@ def get_prediction_result(image, path, scene_number, text):
         )
 
         output = response.choices[0].message.content
+        output = strip_thinking_tags(output)
         result = process_grasping_result(output, text)
-        
+        valid_molmo_ids = [item[0] for item in parsed_data]
+        if "selected_object_id" in result and result["selected_object_id"] in valid_molmo_ids:
+            reasoning_metadata["selected_object_id"] = result["selected_object_id"]
+            reasoning_metadata["selected_gt_id"] = molmo_to_gt_map.get(result["selected_object_id"])
+            reasoning_metadata["valid_selected_id"] = True
 
-        if 'selected_object_id' not in result or result["selected_object_id"] not in [item[0] for item in parsed_data]:
-            print("No object id detected by GPT, using LangSAM for segmentation...")
+        if 'selected_object_id' not in result or result["selected_object_id"] not in valid_molmo_ids:
+            print("No object id detected, using LangSAM for segmentation...")
             input2LangSAM = result["class_name"]
             masks, boxes, phrases, logits = langsam_actor.predict(image_pil, input2LangSAM)
             
@@ -289,14 +310,35 @@ def get_prediction_result(image, path, scene_number, text):
             goal = result["class_name"]
             goal_id = result['selected_object_id']
             goal_coor = get_coordinates(points_with_ids, goal_id)
-            masks, boxes, phrases, logits = langsam_actor.predict(image_pil, goal)
 
-            # Selected the mask of the object we want based on the coordinates generate from molmo (if there are multi same class objects)
-            goal_mask, mask_index = get_goal_mask_with_index(masks, goal_coor)
-            goal_bbox = boxes[mask_index]
-            goal_bbox = goal_bbox.cpu().numpy()
+            if goal_coor is None:
+                print(f"⚠️ goal_coor is None for goal_id={goal_id}, falling back to LangSAM-only segmentation.")
+                masks, boxes, phrases, logits = langsam_actor.predict(image_pil, goal)
+                if masks is None or masks.numel() == 0:
+                    raise Exception("LangSAM failed to segment the object.")
+                best_index = np.argmax(logits.cpu().numpy())
+                goal_mask = masks[best_index]
+                goal_bbox = boxes[best_index].cpu().numpy()
+            else:
+                masks, boxes, phrases, logits = langsam_actor.predict(image_pil, goal)
 
+                # Selected the mask of the object we want based on the coordinates generate from molmo (if there are multi same class objects)
+                goal_mask, mask_index = get_goal_mask_with_index(masks, goal_coor)
+
+                if goal_mask is None or mask_index is None:
+                    print(f"⚠️ Could not find matching mask for goal_coor={goal_coor}, using best available mask.")
+                    best_index = np.argmax(logits.cpu().numpy())
+                    goal_mask = masks[best_index]
+                    goal_bbox = boxes[best_index].cpu().numpy()
+                else:
+                    goal_bbox = boxes[mask_index]
+                    goal_bbox = goal_bbox.cpu().numpy()
+
+        if return_metadata:
+            return {"mask": goal_mask, "reasoning": reasoning_metadata}
         return goal_mask
 
     except Exception as e:
-        return {"error": str(e)}, {}
+        if return_metadata:
+            return {"error": str(e), "reasoning": reasoning_metadata}
+        return {"error": str(e)}

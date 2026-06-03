@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test script for Qwen3-VL-Flash API call via DashScope."""
+"""Test script for Qwen-VL-Plus API call via DashScope."""
 
 import os
 import sys
@@ -10,7 +10,7 @@ def test_api():
     api_key = os.environ.get("DASHSCOPE_API_KEY", "")
     if not api_key:
         print("ERROR: DASHSCOPE_API_KEY not set!")
-        print('Run: export DASHSCOPE_API_KEY="sk-your-key-here"')
+        print('Run: export DASHSCOPE_API_KEY="your-dashscope-api-key"')
         sys.exit(1)
 
     client = OpenAI(
@@ -22,7 +22,7 @@ def test_api():
     print("=== Test 1: Text-only call ===")
     try:
         completion = client.chat.completions.create(
-            model="qwen3-vl-flash",
+            model="qwen3.6-plus",
             messages=[{"role": "user", "content": "Hello, who are you?"}],
         )
         print("Response:", completion.choices[0].message.content)
@@ -35,7 +35,7 @@ def test_api():
     print("=== Test 2: Vision call with image ===")
     try:
         completion = client.chat.completions.create(
-            model="qwen3-vl-flash",
+            model="qwen3.6-plus",
             messages=[
                 {
                     "role": "user",

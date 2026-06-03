@@ -71,7 +71,7 @@ If you have any questions, please contact us at rjiao@fbk.eu.
 
 1. **Set Your OpenAI API Key**:  
    ```bash
-   export OPENAI_API_KEY="sk-xxxxx"
+   export OPENAI_API_KEY="your-openai-api-key"
    ```
 
 ### Potential Issues of Installation

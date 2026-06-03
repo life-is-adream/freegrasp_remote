@@ -6,6 +6,7 @@ import pandas as pd
 from PIL import Image
 from pathlib import Path
 from utils.utils import get_prediction_result
+from rsr_metrics import is_reasoning_success
 
 # Load dataset JSON file
 def load_dataset(json_path):
@@ -23,15 +24,7 @@ def compute_iou(mask_pred, mask_gt):
 def process_dataset(df, dataset_root, molmo_output_root, output_json_path):
     results = []
     correct_count = 0
-    
-    if os.path.exists(output_json_path):
-        with open(output_json_path, "r") as f:
-            try:
-                results = json.load(f)
-            except json.JSONDecodeError:
-                results = []
-                
-    processed_scenes = {tuple(r[:3]) for r in results}
+    processed_scenes = set()
 
     for _, row in df.iterrows():
         # scene_id, obj_id, annotation, gt_id, _ = row
@@ -75,36 +68,66 @@ def process_dataset(df, dataset_root, molmo_output_root, output_json_path):
         # image_path include original image for LangSAM, molmo_folder include labeled image (for GPT) and points coordinates (for LangSAM post-process).
 
         try:
-            mask_pred = get_prediction_result(image, molmo_folder, scene_id, annotation)
+            prediction = get_prediction_result(image, molmo_folder, scene_id, annotation, return_metadata=True)
+            reasoning = prediction.get("reasoning", {}) if isinstance(prediction, dict) else {}
+            rsr_correct = int(
+                is_reasoning_success(
+                    reasoning.get("selected_object_id"),
+                    {reasoning.get("selected_object_id"): reasoning.get("selected_gt_id")},
+                    gt_ids,
+                )
+            )
             
-            if isinstance(mask_pred, dict) and "error" in mask_pred:
-                print(f"Scene {scene_id}, Object {obj_id} failed: {mask_pred['error']}")
-                results.append([scene_id, obj_id, annotation, 0])
+            if isinstance(prediction, dict) and "error" in prediction:
+                print(f"Scene {scene_id}, Object {obj_id} failed: {prediction['error']}")
+                results.append([scene_id, obj_id, annotation, 0, rsr_correct])
                 continue
+
+            mask_pred = prediction["mask"] if isinstance(prediction, dict) else prediction
         
         except Exception as e:
             print(f"❌ Unexpected error in Scene {scene_id}, Object {obj_id}: {e}")
-            results.append([scene_id, obj_id, annotation, 0])
+            results.append([scene_id, obj_id, annotation, 0, 0])
             continue 
 
         if mask_pred is None:
             print(f"❌ Scene {scene_id}, Object {obj_id}: mask_pred is None, skipping.")
-            results.append([scene_id, obj_id, annotation, 0])
+            results.append([scene_id, obj_id, annotation, 0, rsr_correct])
             continue
 
+        mask_pred = np.asarray(mask_pred)
+        # gt_masks can be 2D (H,W) or 3D (N,H,W). Get spatial shape.
+        gt_spatial_shape = gt_masks.shape if gt_masks.ndim == 2 else gt_masks.shape[1:]
+        if mask_pred.ndim != 2 or mask_pred.shape != gt_spatial_shape:
+            print(f"❌ Scene {scene_id}, Object {obj_id}: mask_pred shape {mask_pred.shape} != expected {gt_spatial_shape}, skipping.")
+            results.append([scene_id, obj_id, annotation, 0, rsr_correct])
+            continue
+
+        iou = 0.0
         for gt_id in gt_ids:
-            if 0< gt_id <= len(gt_masks):
+            if gt_masks.ndim == 3:
+                if 0 < gt_id <= len(gt_masks):
+                    gt_mask = (gt_masks[gt_id - 1] > 0).astype(np.uint8)
+                    iou = compute_iou(mask_pred, gt_mask)
+                    if iou >= 0.5:
+                        valid_gt = True
+                        break
+                else:
+                    print(f"⚠️ GT ID {gt_id} is out of range for Scene {scene_id}.")
+            else:
+                # gt_masks is 2D, gt_id marks a pixel value
                 gt_mask = (gt_masks == gt_id).astype(np.uint8)
+                if gt_mask.sum() == 0:
+                    print(f"⚠️ GT ID {gt_id} not found in 2D mask for Scene {scene_id}.")
+                    continue
                 iou = compute_iou(mask_pred, gt_mask)
-                if iou>=0.5:
+                if iou >= 0.5:
                     valid_gt = True
                     break
-            else:
-                print(f"⚠️ GT ID {gt_id} is out of range for Scene {scene_id}.")     
                 
         is_correct = 1 if valid_gt else 0
         correct_count += is_correct           
-        results.append([scene_id, obj_id, annotation, is_correct])
+        results.append([scene_id, obj_id, annotation, is_correct, rsr_correct])
         
         with open(output_json_path, "w") as f:
             json.dump(results, f, indent=4)
@@ -112,6 +135,9 @@ def process_dataset(df, dataset_root, molmo_output_root, output_json_path):
         print(f"✅ Scene {scene_id}, Object {obj_id}: IoU={iou:.4f}, {'✔' if is_correct else '❌'}")
 
     # Calculate accuracy
+    with open(output_json_path, "w") as f:
+        json.dump(results, f, indent=4)
+
     accuracy = correct_count / len(df) if len(df) else 0
     print(f"\n🎯 Accuracy: {accuracy:.2%} ({correct_count}/{len(df)})")
     print(f"📂 Results saved to {output_json_path}")
