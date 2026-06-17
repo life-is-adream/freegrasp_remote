@@ -63,7 +63,7 @@ class ApproachNet(nn.Module):
         # print(view_score.min(), view_score.max(), view_score.mean())
         top_view_scores, top_view_inds = torch.max(view_score, dim=2) # (B, num_seed)
         top_view_inds_ = top_view_inds.view(B, num_seed, 1, 1).expand(-1, -1, -1, 3).contiguous()
-        template_views = generate_grasp_views(self.num_view).to(features.device) # (num_view, 3)
+        template_views = generate_grasp_views(self.num_view).to(device=features.device) # (num_view, 3)
         template_views = template_views.view(1, 1, self.num_view, 3).expand(B, num_seed, -1, -1).contiguous() #(B, num_seed, num_view, 3)
         vp_xyz = torch.gather(template_views, 2, top_view_inds_).squeeze(2) #(B, num_seed, 3)
         vp_xyz_ = vp_xyz.view(-1, 3)

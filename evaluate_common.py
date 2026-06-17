@@ -45,7 +45,41 @@ def prepare_subset(df: pd.DataFrame, subset_name: str, selected_split: str) -> p
     return split_df[(split_df["difficulty"] == difficulty) & (split_df["ambiguious"] == ambiguous)]
 
 
-def evaluate_subset(subset_name: str, selected_split: str = "0", output_dir: str = "data/output") -> dict:
+def missing_molmo_scene_ids(df: pd.DataFrame, molmo_output_dir: str = MOLMO_OUTPUT_DIR) -> list[int]:
+    missing = []
+    for scene_id in sorted(int(scene_id) for scene_id in df["sceneId"].unique()):
+        scene_dir = os.path.join(molmo_output_dir, f"scene{scene_id}")
+        image_path = os.path.join(scene_dir, f"{scene_id}.png")
+        id_path = os.path.join(scene_dir, f"{scene_id}_id.txt")
+        if not os.path.exists(image_path) or not os.path.exists(id_path):
+            missing.append(scene_id)
+    return missing
+
+
+def ensure_molmo_cache_exists(df: pd.DataFrame, molmo_output_dir: str = MOLMO_OUTPUT_DIR) -> None:
+    missing = missing_molmo_scene_ids(df, molmo_output_dir)
+    if not missing:
+        return
+
+    preview = ", ".join(str(scene_id) for scene_id in missing[:10])
+    raise RuntimeError(
+        f"Molmo cache is missing {len(missing)} required scene(s): {preview}. "
+        "Run with --regenerate-molmo once to rebuild data/output/molmo_output."
+    )
+
+
+def evaluate_subset(
+    subset_name: str,
+    selected_split: str = "0",
+    output_dir: str = "data/output",
+    prepare_molmo: bool = True,
+    model_name: str = "qwen3.6-flash",
+    prompt_variant: str = "legacy",
+    max_output_tokens: int = 64,
+    resume: bool = False,
+    mimo_retry_mode: str = "none",
+    segmentation_variant: str = "baseline",
+) -> dict:
     os.makedirs(MOLMO_OUTPUT_DIR, exist_ok=True)
 
     df = load_dataset()
@@ -58,7 +92,21 @@ def evaluate_subset(subset_name: str, selected_split: str = "0", output_dir: str
     )
 
     output_json_path = os.path.join(output_dir, f"out_{subset_name}.json")
-    process_dataset(selected_subset, NPZ_DIR, MOLMO_OUTPUT_DIR, output_json_path)
+    details_json_path = os.path.join(output_dir, f"details_{subset_name}.json")
+    process_dataset(
+        selected_subset,
+        NPZ_DIR,
+        MOLMO_OUTPUT_DIR,
+        output_json_path,
+        prompt_variant=prompt_variant,
+        model_name=model_name,
+        max_output_tokens=max_output_tokens,
+        resume=resume,
+        mimo_retry_mode=mimo_retry_mode,
+        segmentation_variant=segmentation_variant,
+        evaluation_subset=subset_name,
+        details_json_path=details_json_path,
+    )
     return {
         "ssr": calculate_accuracy(output_json_path),
         "rsr": calculate_reasoning_accuracy(output_json_path),

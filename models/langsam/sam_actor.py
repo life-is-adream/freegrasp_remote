@@ -16,14 +16,14 @@ class SAMActor:
 
         self.device = "cuda" if use_gpu else "cpu"
         # Initialize the SAM model and processor
-        self.model = SamModel.from_pretrained("facebook/sam-vit-huge").to(self.device)
+        self.model = SamModel.from_pretrained("facebook/sam-vit-huge").to(device=self.device)
         self.processor = SamProcessor.from_pretrained("facebook/sam-vit-huge")
 
     def predict(self, image, input_points):
         # Load and process the image
         inputs = self.processor(
             image, input_points=input_points, return_tensors="pt"
-        ).to(self.device)
+        ).to(device=self.device)
 
         # Perform inference
         with torch.no_grad():

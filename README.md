@@ -21,6 +21,23 @@ Our method detects all objects as keypoints and uses these keypoints to annotate
 #### Contact
 If you have any questions, please contact us at rjiao@fbk.eu.
 
+## Codex Collaboration Templates
+
+If you use Codex or other coding agents with this repository, reusable prompt
+templates are available under [`agents/`](agents/README.md).
+
+Included templates:
+
+- `01-project-scout.md`: map the repository before making changes
+- `02-experiment-designer.md`: plan cheap, reproducible evaluation runs
+- `03-cost-cache-guardian.md`: check API, cache, and rerun risk before running commands
+- `04-results-auditor.md`: compare runs and analyze regressions
+- `05-regression-test-guardian.md`: choose the smallest useful test coverage
+
+FreeGrasp-specific reminder: prefer reusing `data/output/molmo_output/` and
+avoid casually running heavy or paid scripts such as `evaluate_all.py`,
+`evaluate_mimo.py`, `run.py`, or `test_qwen_api.py`.
+
 ## Setup
 ### Installation Requirements
 

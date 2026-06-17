@@ -13,20 +13,27 @@ from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
 # Disable flash_attn in PyTorch SDPA to avoid "FlashAttention only supports Ampere GPUs" error
 torch.backends.cuda.enable_flash_sdp(False)
 
-# **Upload Molmo Model**
-processor = AutoProcessor.from_pretrained(
-    'allenai/Molmo-7B-D-0924',
-    trust_remote_code=True,
-    torch_dtype='auto',
-    device_map='auto'
-)
+# **Upload Molmo Model** (lazy loading to avoid tensorflow dependency at import time)
+processor = None
+model = None
 
-model = AutoModelForCausalLM.from_pretrained(
-    'allenai/Molmo-7B-D-0924',
-    trust_remote_code=True,
-    torch_dtype=torch.float16,
-    device_map='auto'
-)
+def _load_molmo_model():
+    global processor, model
+    if processor is None:
+        processor = AutoProcessor.from_pretrained(
+            'allenai/Molmo-7B-D-0924',
+            trust_remote_code=True,
+            torch_dtype='auto',
+            device_map='auto'
+        )
+    if model is None:
+        model = AutoModelForCausalLM.from_pretrained(
+            'allenai/Molmo-7B-D-0924',
+            trust_remote_code=True,
+            torch_dtype=torch.float16,
+            device_map='auto'
+        )
+    return processor, model
 
 
 # Extract (x, y) coordinates from Molmo output
@@ -46,11 +53,12 @@ def run_molmo_inference(image, prompt):
     image_w, image_h = image.size
     torch.backends.cuda.enable_flash_sdp(False)  # Ensure flash is disabled before inference
 
-    inputs = processor.process(images=[image], text=prompt)
-    inputs = {k: v.to(model.device).unsqueeze(0) for k, v in inputs.items()}
+    proc, mdl = _load_molmo_model()
+    inputs = proc.process(images=[image], text=prompt)
+    inputs = {k: v.to(mdl.device).unsqueeze(0) for k, v in inputs.items()}
 
     with torch.autocast(device_type="cuda", enabled=True, dtype=torch.float16):
-        output = model.generate_from_batch(
+        output = mdl.generate_from_batch(
             inputs,
             GenerationConfig(
                 max_new_tokens=500,
@@ -58,11 +66,11 @@ def run_molmo_inference(image, prompt):
                 temperature=0.2,
                 stop_strings=["<|endoftext|>"]
             ),
-            tokenizer=processor.tokenizer
+            tokenizer=proc.tokenizer
         )
 
     generated_tokens = output[0, inputs['input_ids'].size(1):]
-    generated_text = processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+    generated_text = proc.tokenizer.decode(generated_tokens, skip_special_tokens=True)
     print(f"Generated Output: {generated_text}")
 
     points = extract_points(generated_text, image_w, image_h)
@@ -127,11 +135,12 @@ def run_local_inference(image, prompt):
     image_w, image_h = image.size
 
     # Process input
-    inputs = processor.process(images=[image], text=prompt)
-    inputs = {k: v.to(model.device).unsqueeze(0) for k, v in inputs.items()}
+    proc, mdl = _load_molmo_model()
+    inputs = proc.process(images=[image], text=prompt)
+    inputs = {k: v.to(mdl.device).unsqueeze(0) for k, v in inputs.items()}
 
     with torch.autocast(device_type="cuda", enabled=True, dtype=torch.float16):
-        output = model.generate_from_batch(
+        output = mdl.generate_from_batch(
             inputs,
             GenerationConfig(
                 max_new_tokens=500,
@@ -139,12 +148,12 @@ def run_local_inference(image, prompt):
                 temperature=0.2,
                 stop_strings=["<|endoftext|>"]
             ),
-            tokenizer=processor.tokenizer
+            tokenizer=proc.tokenizer
         )
 
     # Parse output text
     generated_tokens = output[0, inputs['input_ids'].size(1):]
-    generated_text = processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+    generated_text = proc.tokenizer.decode(generated_tokens, skip_special_tokens=True)
     
     # Extract point coordinates
     points = extract_points(generated_text, image_w, image_h)

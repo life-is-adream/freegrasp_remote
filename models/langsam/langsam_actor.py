@@ -11,6 +11,9 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
+from models.langsam.import_paths import ensure_groundingdino_path
+
+ensure_groundingdino_path()
 
 import groundingdino.datasets.transforms as T
 import numpy as np
@@ -123,7 +126,7 @@ class LangSAM():
         masks, _, _ = self.sam.predict_torch(
             point_coords=None,
             point_labels=None,
-            boxes=transformed_boxes.to(self.sam.device),
+            boxes=transformed_boxes.to(device=self.sam.device),
             multimask_output=False,
         )
         return masks.cpu()

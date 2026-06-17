@@ -51,6 +51,64 @@ class EvaluateEntrypointsTest(unittest.TestCase):
 
         self.assertEqual(subset_values, list(EXPECTED_SUBSETS.values()))
 
+    def test_evaluate_all_exposes_controlled_ablation_arguments(self) -> None:
+        tree = ast.parse((PROJECT_ROOT / "evaluate_all.py").read_text())
+        string_constants = {
+            node.value for node in ast.walk(tree) if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+        evaluate_pipeline = next(
+            node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "evaluate_pipeline"
+        )
+        pipeline_args = {arg.arg for arg in evaluate_pipeline.args.args}
+
+        self.assertIn("--model-name", string_constants)
+        self.assertIn("--prompt-variant", string_constants)
+        self.assertIn("legacy_old", string_constants)
+        self.assertIn("--reuse-molmo", string_constants)
+        self.assertIn("--regenerate-molmo", string_constants)
+        self.assertIn("--resume", string_constants)
+        self.assertIn("--run-dir", string_constants)
+        self.assertIn("--max-output-tokens", string_constants)
+        self.assertIn("--mimo-retry-mode", string_constants)
+        self.assertIn("--segmentation-variant", string_constants)
+        self.assertIn("--subset-policy", string_constants)
+        self.assertIn("direct_target", string_constants)
+        self.assertIn("hard_occlusion", string_constants)
+        self.assertIn("hard_review", string_constants)
+        self.assertIn("observed_best_v1", string_constants)
+        self.assertIn("easy_direct_v1", string_constants)
+        self.assertIn("easy_direct_hard_occlusion_v1", string_constants)
+        self.assertIn("best_known_v1", string_constants)
+        self.assertIn("model_name", pipeline_args)
+        self.assertIn("prompt_variant", pipeline_args)
+        self.assertIn("reuse_molmo", pipeline_args)
+        self.assertIn("resume", pipeline_args)
+        self.assertIn("run_dir", pipeline_args)
+        self.assertIn("max_output_tokens", pipeline_args)
+        self.assertIn("mimo_retry_mode", pipeline_args)
+        self.assertIn("segmentation_variant", pipeline_args)
+        self.assertIn("subset_policy", pipeline_args)
+
+    def test_evaluate_all_defaults_to_reusing_molmo_cache(self) -> None:
+        tree = ast.parse((PROJECT_ROOT / "evaluate_all.py").read_text())
+        parse_args = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "parse_args")
+
+        self.assertTrue(
+            any(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "set_defaults"
+                and any(
+                    keyword.arg == "reuse_molmo"
+                    and isinstance(keyword.value, ast.Constant)
+                    and keyword.value.value is True
+                    for keyword in node.keywords
+                )
+                for node in ast.walk(parse_args)
+            ),
+            "evaluate_all.py should reuse data/output/molmo_output unless --regenerate-molmo is explicit",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
