@@ -10,6 +10,7 @@ from utils.scene_evidence import (
     format_router_input,
     parse_route_assessment,
     predict_geometry_from_molmo_points,
+    select_consistent_mask,
     select_point_mask,
 )
 
@@ -130,6 +131,40 @@ class SceneEvidenceTest(unittest.TestCase):
         self.assertIn("source=predicted_sam_point_masks", text)
         self.assertNotIn("999", text)
         self.assertNotIn("GT_ID", text)
+
+    def test_consistent_mask_beats_higher_confidence_wrong_instance(self):
+        wrong = np.zeros((8, 8), dtype=bool)
+        wrong[:3, :3] = True
+        right = np.zeros((8, 8), dtype=bool)
+        right[3:7, 3:7] = True
+
+        selected = select_consistent_mask(
+            masks=[wrong, right],
+            confidences=[0.99, 0.70],
+            point=(5, 5),
+        )
+
+        self.assertEqual(selected.index, 1)
+        self.assertIsNone(selected.fallback_reason)
+
+    def test_nearest_mask_fallback_is_explicit(self):
+        left = np.zeros((8, 8), dtype=bool)
+        left[1:3, 1:3] = True
+        right = np.zeros((8, 8), dtype=bool)
+        right[5:7, 5:7] = True
+
+        selected = select_consistent_mask(
+            masks=[left, right],
+            confidences=[0.5, 0.5],
+            point=(4, 4),
+        )
+
+        self.assertFalse(selected.contains_point)
+        self.assertEqual(selected.index, 1)
+        self.assertEqual(
+            selected.fallback_reason,
+            "no_candidate_contains_point",
+        )
 
 
 if __name__ == "__main__":

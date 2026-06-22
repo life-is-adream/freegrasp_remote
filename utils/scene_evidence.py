@@ -16,6 +16,17 @@ class PointMaskSelection:
     area_ratio: float
 
 
+@dataclass(frozen=True)
+class ConsistentMaskSelection:
+    index: int
+    total_score: float
+    contains_point: bool
+    confidence: float
+    area_ratio: float
+    point_distance: float
+    fallback_reason: str | None
+
+
 def _contains(mask, point):
     x, y = point
     return (
@@ -23,6 +34,15 @@ def _contains(mask, point):
         and 0 <= x < mask.shape[1]
         and bool(mask[y, x])
     )
+
+
+def _distance_to_mask(mask, point):
+    x, y = point
+    indices = np.column_stack(np.where(mask))
+    if not indices.size:
+        return float("inf")
+    distances = np.linalg.norm(indices - np.asarray([y, x]), axis=1)
+    return float(distances.min())
 
 
 def select_point_mask(masks, scores, point, area_weight=0.25):
@@ -48,6 +68,60 @@ def select_point_mask(masks, scores, point, area_weight=0.25):
     if not ranked:
         raise ValueError("SAM returned no point-mask candidates")
     return max(ranked, key=lambda item: item.score)
+
+
+def select_consistent_mask(
+    masks,
+    confidences,
+    point,
+    confidence_weight=0.25,
+    area_weight=0.15,
+):
+    candidates = []
+    for index, mask in enumerate(masks):
+        mask = np.asarray(mask, dtype=bool)
+        contains_point = _contains(mask, point)
+        area_ratio = float(mask.mean()) if mask.size else 1.0
+        confidence = float(confidences[index])
+        point_distance = _distance_to_mask(mask, point)
+        total_score = (
+            (2.0 if contains_point else 0.0)
+            + confidence_weight * confidence
+            - area_weight * area_ratio
+        )
+        candidates.append(
+            ConsistentMaskSelection(
+                index=index,
+                total_score=total_score,
+                contains_point=contains_point,
+                confidence=confidence,
+                area_ratio=area_ratio,
+                point_distance=point_distance,
+                fallback_reason=None,
+            )
+        )
+
+    if not candidates:
+        raise ValueError("No segmentation masks to score")
+
+    containing = [item for item in candidates if item.contains_point]
+    if containing:
+        return max(containing, key=lambda item: item.total_score)
+
+    nearest = min(
+        candidates,
+        key=lambda item: (
+            item.point_distance,
+            -item.confidence,
+            item.area_ratio,
+        ),
+    )
+    return ConsistentMaskSelection(
+        **{
+            **asdict(nearest),
+            "fallback_reason": "no_candidate_contains_point",
+        }
+    )
 
 
 def build_predicted_geometry(parsed_data, masks_by_id):
