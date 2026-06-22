@@ -6,6 +6,9 @@ import numpy as np
 from utils.scene_evidence import (
     add_pairwise_relations,
     build_predicted_geometry,
+    evidence_router_prompt,
+    format_router_input,
+    parse_route_assessment,
     predict_geometry_from_molmo_points,
     select_point_mask,
 )
@@ -85,6 +88,48 @@ class SceneEvidenceTest(unittest.TestCase):
         self.assertEqual(evidence["source"], "predicted_sam_point_masks")
         self.assertNotIn("900", json.dumps(evidence))
         self.assertNotIn("901", json.dumps(evidence))
+
+    def test_evidence_router_prompt_has_bounded_schema(self):
+        prompt = evidence_router_prompt()
+
+        self.assertIn('"route_mode"', prompt)
+        self.assertIn('"route_confidence"', prompt)
+        self.assertIn('"target_object_id"', prompt)
+        self.assertIn('"ambiguity_evidence"', prompt)
+        self.assertIn('"blocker_evidence"', prompt)
+        self.assertIn("near alone", prompt)
+
+    def test_parse_route_assessment_rejects_unknown_mode(self):
+        output = json.dumps(
+            {
+                "route_mode": "hard",
+                "route_confidence": 0.9,
+                "target_object_id": 3,
+            }
+        )
+
+        with self.assertRaisesRegex(ValueError, "Unknown route mode"):
+            parse_route_assessment(output, [3, 4])
+
+    def test_router_input_uses_predicted_evidence_without_gt_fields(self):
+        evidence = {
+            "source": "predicted_sam_point_masks",
+            "candidates": {
+                3: {"point": (4, 5), "bbox": (2, 3, 6, 7), "area": 25},
+            },
+            "relations": [],
+        }
+
+        text = format_router_input(
+            instruction="Grasp the red block",
+            parsed_data=[(3, 4, 5, 999)],
+            predicted_geometry=evidence,
+        )
+
+        self.assertIn("visible_object_count=1", text)
+        self.assertIn("source=predicted_sam_point_masks", text)
+        self.assertNotIn("999", text)
+        self.assertNotIn("GT_ID", text)
 
 
 if __name__ == "__main__":

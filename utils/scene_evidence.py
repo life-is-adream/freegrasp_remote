@@ -1,6 +1,11 @@
 from dataclasses import asdict, dataclass
+import json
+import re
 
 import numpy as np
+
+
+VALID_ROUTE_MODES = {"direct", "target_first", "blocker_first"}
 
 
 @dataclass(frozen=True)
@@ -140,3 +145,74 @@ def predict_geometry_from_molmo_points(image, parsed_data, predictor):
     evidence = build_predicted_geometry(parsed_data, masks_by_id)
     evidence["point_mask_selections"] = selections
     return add_pairwise_relations(evidence)
+
+
+def evidence_router_prompt():
+    return (
+        "You route one bin-picking observation to a first-grasp reasoning mode. "
+        "Use the RGB image, instruction, visible Molmo IDs, and any predicted "
+        "geometry supplied by the user. Object count is only a clutter prior. "
+        "Choose direct when a credible target is visible and unblocked; "
+        "target_first when target identity or geometry is uncertain; and "
+        "blocker_first only when the target is missing or direct physical "
+        "coverage/contact/overlap evidence exists. The relation near alone cannot "
+        "prove blocking. Return JSON only with this schema: "
+        '{"route_mode":"direct|target_first|blocker_first",'
+        '"route_confidence":0.0,'
+        '"target_object_id":1,'
+        '"target_label":"object",'
+        '"ambiguity_evidence":[],'
+        '"blocker_evidence":[]}'
+    )
+
+
+def parse_route_assessment(output, visible_object_ids):
+    match = re.search(r"\{.*\}", str(output), flags=re.DOTALL)
+    if not match:
+        raise ValueError("Router output does not contain JSON")
+    data = json.loads(match.group(0))
+    mode = data["route_mode"]
+    if mode not in VALID_ROUTE_MODES:
+        raise ValueError(f"Unknown route mode: {mode}")
+
+    target_id = data.get("target_object_id")
+    if target_id is not None:
+        target_id = int(target_id)
+        if target_id not in visible_object_ids:
+            target_id = None
+
+    return {
+        "route_mode": mode,
+        "route_confidence": float(data.get("route_confidence", 0.0)),
+        "target_object_id": target_id,
+        "target_label": str(data.get("target_label", "target")),
+        "ambiguity_evidence": list(data.get("ambiguity_evidence", [])),
+        "blocker_evidence": list(data.get("blocker_evidence", [])),
+    }
+
+
+def format_router_input(instruction, parsed_data, predicted_geometry=None):
+    lines = [
+        f"Instruction: {instruction}",
+        f"visible_object_count={len(parsed_data)}",
+        "Visible Molmo candidates:",
+    ]
+    for object_id, x, y, _ignored_gt_id in parsed_data:
+        lines.append(f"- id={object_id}, point=({x},{y})")
+
+    if predicted_geometry:
+        lines.append(
+            f"Predicted geometry source={predicted_geometry.get('source', 'unknown')}:"
+        )
+        for object_id, item in predicted_geometry.get("candidates", {}).items():
+            lines.append(
+                f"- id={object_id}, bbox={tuple(item['bbox'])}, "
+                f"area={int(item['area'])}"
+            )
+        for relation in predicted_geometry.get("relations", []):
+            lines.append(
+                f"- relation id={relation['source_id']}->{relation['target_id']}, "
+                f"type={relation['relation']}, overlap={relation['overlap']:.3f}, "
+                f"vertical_order={relation['vertical_order']}"
+            )
+    return "\n".join(lines)
