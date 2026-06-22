@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 import numpy as np
 
@@ -118,3 +118,25 @@ def add_pairwise_relations(evidence):
         **evidence,
         "relations": relations,
     }
+
+
+def predict_geometry_from_molmo_points(image, parsed_data, predictor):
+    predictor.set_image(np.asarray(image))
+    masks_by_id = {}
+    selections = {}
+    for object_id, x, y, _ignored_gt_id in parsed_data:
+        masks, scores, _logits = predictor.predict(
+            point_coords=np.asarray([[x, y]], dtype=np.float32),
+            point_labels=np.asarray([1], dtype=np.int32),
+            multimask_output=True,
+        )
+        selected = select_point_mask(masks, scores, (x, y))
+        masks_by_id[object_id] = np.asarray(
+            masks[selected.index],
+            dtype=bool,
+        )
+        selections[object_id] = asdict(selected)
+
+    evidence = build_predicted_geometry(parsed_data, masks_by_id)
+    evidence["point_mask_selections"] = selections
+    return add_pairwise_relations(evidence)

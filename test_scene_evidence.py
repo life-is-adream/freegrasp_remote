@@ -6,8 +6,26 @@ import numpy as np
 from utils.scene_evidence import (
     add_pairwise_relations,
     build_predicted_geometry,
+    predict_geometry_from_molmo_points,
     select_point_mask,
 )
+
+
+class _FakePredictor:
+    def __init__(self):
+        self.images = []
+        self.points = []
+
+    def set_image(self, image):
+        self.images.append(np.asarray(image))
+
+    def predict(self, *, point_coords, point_labels, multimask_output):
+        point = tuple(int(value) for value in point_coords[0])
+        self.points.append(point)
+        mask = np.zeros((20, 20), dtype=bool)
+        x, y = point
+        mask[max(0, y - 1):y + 2, max(0, x - 1):x + 2] = True
+        return np.stack([np.ones((20, 20), dtype=bool), mask]), np.array([0.9, 0.8]), None
 
 
 class SceneEvidenceTest(unittest.TestCase):
@@ -52,6 +70,21 @@ class SceneEvidenceTest(unittest.TestCase):
         self.assertGreater(by_pair[(1, 2)]["overlap"], 0)
         self.assertEqual(by_pair[(1, 3)]["relation"], "near")
         self.assertEqual(by_pair[(1, 3)]["overlap"], 0)
+
+    def test_predict_geometry_uses_only_molmo_points(self):
+        predictor = _FakePredictor()
+
+        evidence = predict_geometry_from_molmo_points(
+            image=np.zeros((20, 20, 3), dtype=np.uint8),
+            parsed_data=[(3, 4, 5, 900), (8, 10, 11, 901)],
+            predictor=predictor,
+        )
+
+        self.assertEqual(len(predictor.images), 1)
+        self.assertEqual(predictor.points, [(4, 5), (10, 11)])
+        self.assertEqual(evidence["source"], "predicted_sam_point_masks")
+        self.assertNotIn("900", json.dumps(evidence))
+        self.assertNotIn("901", json.dumps(evidence))
 
 
 if __name__ == "__main__":
