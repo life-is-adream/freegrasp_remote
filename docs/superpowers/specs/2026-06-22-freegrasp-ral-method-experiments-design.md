@@ -21,8 +21,10 @@ consistency between the selected object point and its segmentation mask.
 Existing results from
 `freegrasp_codex_v10_full_20260618_165628` establish an oracle-routed reference
 of 67.67% RSR and 60.33% SSR on 900 samples. They do not validate the automatic
-router or the proposed mask consistency score, and must not be presented as the
-final automatic-system result.
+router or the proposed mask consistency score. The run also derives semantic
+labels and geometry from benchmark instance annotations, so it is an
+oracle-feature upper bound and must not be presented as the final
+automatic-system result.
 
 ## Terminology
 
@@ -31,7 +33,7 @@ final automatic-system result.
 | first-grasp object | The visible object that should be grasped at the current step |
 | target object | The object requested by the language instruction |
 | blocker evidence | Image-supported contact, coverage, on-top, or overlap evidence |
-| evidence-adaptive routing | Automatic selection of a reasoning mode from scene evidence |
+| evidence-adaptive routing | Automatic selection of a reasoning mode from predicted scene evidence |
 | point-consistent mask | A candidate mask containing the Molmo point of the selected ID |
 | RSR | Reasoning Success Rate |
 | SSR | Segmentation Success Rate at IoU >= 0.5 |
@@ -58,7 +60,8 @@ reasoning modes rather than reading the Easy, Medium, or Hard benchmark label:
 The routing decision combines clutter, ambiguity, and occlusion evidence.
 Object count is a clutter prior, not a decisive difficulty label. A scene with
 many objects can still use direct reasoning when its target is visible and
-unobstructed.
+unobstructed. The deployable route uses geometry predicted from Molmo-point SAM
+masks. A pure image-and-text VLM router is retained as an ablation.
 
 ### 2. Reasoning-Segmentation Geometric Consistency
 
@@ -73,13 +76,25 @@ decision.
 ### Task Formulation
 
 Given an RGB image `I` and language instruction `q`, Molmo produces visible
-candidates
+candidates. Each Molmo point prompts SAM to produce a coarse candidate mask,
+from which the system derives
 
 `C = {(i, p_i, b_i, s_i)} for i = 1...N`,
 
-where `i` is an object ID, `p_i` is a pointing coordinate, `b_i` is a candidate
-box, and `s_i` is an optional semantic label. The system predicts the object ID
-`i*` to grasp now and an instance mask `M*` for that object.
+where `i` is an object ID, `p_i` is a pointing coordinate, `b_i` is a predicted
+candidate box, and `s_i` is an optional VLM-derived semantic label. The system
+predicts the object ID `i*` to grasp now and an instance mask `M*` for that
+object.
+
+### Data Provenance Constraint
+
+The automatic method may consume only the RGB image, language instruction,
+Molmo IDs and points, model outputs, and masks or boxes predicted from those
+inputs. `instances_objects`, `instances_semantic`, ground-truth object IDs, and
+benchmark difficulty labels are prohibited from prompt construction, routing,
+repair, and segmentation selection. They are used only after inference to
+calculate RSR, IoU, and SSR. Any configuration that reads these annotations
+during inference must be labeled `oracle_feature` in its metadata and tables.
 
 ### Evidence-Adaptive Scene Router
 
@@ -91,7 +106,8 @@ The router estimates scene complexity from three terms:
   than 4, 4-5, and at least 6 visible objects.
 - `D_ambiguity` measures target-resolution uncertainty and same-class instance
   ambiguity.
-- `D_occlusion` measures direct blocker evidence. `near` alone is insufficient.
+- `D_occlusion` measures direct blocker evidence derived from predicted masks
+  and boxes. `near` alone is insufficient.
 
 Routing follows these rules:
 
@@ -161,7 +177,8 @@ Report:
    baseline for causal protocol ablations. It must cover 900 samples and match
    the proposed method's token limit, Molmo cache, and segmentation setting.
 3. `Ours + MiMo-v2.5` is the principal proposed-system result.
-4. Oracle-routed v10 is an upper-bound diagnostic, not the deployed method.
+4. Oracle-routed, oracle-feature v10 is an upper-bound diagnostic, not the
+   deployed method.
 
 The existing meaningful original-protocol MiMo run contains only 300 samples
 and reports 56.33% RSR and 49.33% SSR. Zero-score MiMo and MiMo-pro runs are
@@ -178,10 +195,10 @@ Use one preserved Molmo cache and screen:
 | ID | Configuration | Purpose |
 | --- | --- | --- |
 | S0 | Original protocol, matched MiMo settings | Controlled baseline |
-| S1 | Oracle-routed full protocol | Routing upper bound |
+| S1 | Oracle-routed, oracle-feature full protocol | Diagnostic upper bound |
 | S2 | Count-only router | Isolate clutter prior |
-| S3 | Evidence-only router | Isolate target and blocker evidence |
-| S4 | Hybrid router | Test the proposed router |
+| S3 | Pure VLM two-stage router | Test image-and-text routing without geometry |
+| S4 | Predicted-geometry hybrid router | Test the proposed router |
 | S5 | S4 without blocker-first | Isolate hard-scene reasoning |
 | S6 | S4 without geometry repair | Isolate consistency repair |
 | S7 | S4 without invalid-ID repair | Measure the format safety net |
@@ -210,7 +227,7 @@ Run only the retained designs on all 900 samples:
 
 - F0: original protocol with MiMo-v2.5 and a fresh, preserved Molmo cache.
 - F1: complete automatic method using the same cache and token settings.
-- F2: oracle-routed upper bound using the same cache.
+- F2: oracle-routed, oracle-feature upper bound using the same cache.
 - F3: fixed F1 reasoning replayed with G0 and G3.
 
 An existing `fresh_once` run may be reused only after verifying that its exact
@@ -220,7 +237,7 @@ Molmo outputs are preserved and available to every compared configuration.
 
 - Table I: published GPT-4o baseline, controlled MiMo baseline, and proposed
   automatic method.
-- Table II: count-only, evidence-only, hybrid, and oracle routing.
+- Table II: count-only, pure VLM, predicted-geometry hybrid, and oracle routing.
 - Table III: blocker-first, geometry repair, and invalid-ID repair ablations.
 - Table IV: fixed-reasoning segmentation replay.
 - Figure: representative direct-target, target-first, blocker-first, mask-swap,
@@ -236,10 +253,11 @@ only after their protocol, cache, token limit, and sample coverage are matched.
 - Do not claim that point-guided segmentation is newly introduced.
 - Do not treat the existing oracle-routed v10 result as an automatic-system
   result.
+- Do not use ground-truth instance masks, semantic maps, object IDs, or
+  difficulty labels as automatic-method inputs.
 - Do not attribute the v10 gain solely to prompting while token and cache
   settings differ.
 - Do not describe published GPT-4o values as same-environment reproduction.
 - Do not claim model-agnostic generalization without matched experiments on a
   second reasoning model.
 - Do not claim real-robot improvement without new physical experiments.
-
