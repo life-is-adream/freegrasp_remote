@@ -1,0 +1,595 @@
+nohup: ignoring input
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1780885032.966255   55992 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+Loading checkpoint shards:   0%|          | 0/7 [00:00<?, ?it/s]Loading checkpoint shards:  14%|█▍        | 1/7 [00:04<00:29,  4.91s/it]Loading checkpoint shards:  29%|██▊       | 2/7 [00:10<00:26,  5.34s/it]Loading checkpoint shards:  43%|████▎     | 3/7 [00:17<00:24,  6.02s/it]Loading checkpoint shards:  57%|█████▋    | 4/7 [00:24<00:18,  6.29s/it]Loading checkpoint shards:  71%|███████▏  | 5/7 [00:31<00:13,  6.57s/it]Loading checkpoint shards:  86%|████████▌ | 6/7 [00:37<00:06,  6.48s/it]Loading checkpoint shards: 100%|██████████| 7/7 [00:44<00:00,  6.63s/it]Loading checkpoint shards: 100%|██████████| 7/7 [00:44<00:00,  6.34s/it]
+/home/wyl/miniconda3/envs/freegrasp/lib/python3.10/site-packages/timm/models/layers/__init__.py:49: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at ../aten/src/ATen/native/TensorShape.cpp:3609.)
+FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+final text_encoder_type: bert-base-uncased
+Model loaded from /home/wyl/.cache/huggingface/hub/models--ShilongLiu--GroundingDINO/snapshots/a94c9b567a2a374598f05c584e96798a170c56fb/groundingdino_swinb_cogcoor.pth 
+ => _IncompatibleKeys(missing_keys=[], unexpected_keys=['label_enc.weight', 'bert.embeddings.position_ids'])
+Total number of examples in [SPLIT 0] of [SET easy_no_ambi]: 50
+Resuming from data/output/mimo-v2.5_split0_hard_occlusion_fixed_molmo/split_0/out_easy_no_ambi.json: loaded 50 existing result(s).
+Skipping Scene 0, Object 3, already processed.
+Skipping Scene 184, Object 9, already processed.
+Skipping Scene 374, Object 2, already processed.
+Skipping Scene 381, Object 3, already processed.
+Skipping Scene 398, Object 1, already processed.
+Skipping Scene 509, Object 3, already processed.
+Skipping Scene 527, Object 2, already processed.
+Skipping Scene 564, Object 5, already processed.
+Skipping Scene 646, Object 4, already processed.
+Skipping Scene 834, Object 1, already processed.
+Skipping Scene 842, Object 1, already processed.
+Skipping Scene 961, Object 3, already processed.
+Skipping Scene 1189, Object 1, already processed.
+Skipping Scene 1200, Object 2, already processed.
+Skipping Scene 1350, Object 2, already processed.
+Skipping Scene 1527, Object 1, already processed.
+Skipping Scene 1599, Object 4, already processed.
+Skipping Scene 1758, Object 1, already processed.
+Skipping Scene 1776, Object 2, already processed.
+Skipping Scene 1796, Object 3, already processed.
+Skipping Scene 1868, Object 1, already processed.
+Skipping Scene 1869, Object 2, already processed.
+Skipping Scene 1947, Object 5, already processed.
+Skipping Scene 2168, Object 1, already processed.
+Skipping Scene 2189, Object 4, already processed.
+Skipping Scene 2473, Object 4, already processed.
+Skipping Scene 2581, Object 3, already processed.
+Skipping Scene 2683, Object 6, already processed.
+Skipping Scene 3143, Object 4, already processed.
+Skipping Scene 3298, Object 1, already processed.
+Skipping Scene 4735, Object 4, already processed.
+Skipping Scene 5636, Object 2, already processed.
+Skipping Scene 6717, Object 4, already processed.
+Skipping Scene 6797, Object 6, already processed.
+Skipping Scene 6811, Object 5, already processed.
+Skipping Scene 6827, Object 1, already processed.
+Skipping Scene 6935, Object 7, already processed.
+Skipping Scene 6946, Object 14, already processed.
+Skipping Scene 6998, Object 8, already processed.
+Skipping Scene 7020, Object 4, already processed.
+Skipping Scene 7022, Object 5, already processed.
+Skipping Scene 7032, Object 2, already processed.
+Skipping Scene 7034, Object 4, already processed.
+Skipping Scene 7071, Object 3, already processed.
+Skipping Scene 7101, Object 6, already processed.
+Skipping Scene 7106, Object 5, already processed.
+Skipping Scene 7176, Object 3, already processed.
+Skipping Scene 7192, Object 9, already processed.
+Skipping Scene 7201, Object 3, already processed.
+Skipping Scene 7265, Object 6, already processed.
+
+🎯 Accuracy: 82.00% (41/50)
+📂 Results saved to data/output/mimo-v2.5_split0_hard_occlusion_fixed_molmo/split_0/out_easy_no_ambi.json
+Total Samples: 50
+Correct Predictions: 41
+Accuracy: 82.00%
+Total Samples: 50
+Correct Reasoning Predictions: 47
+RSR Accuracy: 94.00%
+Total number of examples in [SPLIT 0] of [SET easy_yes_ambi]: 50
+Resuming from data/output/mimo-v2.5_split0_hard_occlusion_fixed_molmo/split_0/out_easy_yes_ambi.json: loaded 50 existing result(s).
+Skipping Scene 20, Object 7, already processed.
+Skipping Scene 32, Object 7, already processed.
+Skipping Scene 33, Object 2, already processed.
+Skipping Scene 125, Object 4, already processed.
+Skipping Scene 222, Object 1, already processed.
+Skipping Scene 305, Object 1, already processed.
+Skipping Scene 365, Object 6, already processed.
+Skipping Scene 766, Object 3, already processed.
+Skipping Scene 838, Object 3, already processed.
+Skipping Scene 959, Object 1, already processed.
+Skipping Scene 976, Object 1, already processed.
+Skipping Scene 976, Object 2, already processed.
+Skipping Scene 1047, Object 1, already processed.
+Skipping Scene 1050, Object 2, already processed.
+Skipping Scene 1070, Object 1, already processed.
+Skipping Scene 1071, Object 2, already processed.
+Skipping Scene 1085, Object 2, already processed.
+Skipping Scene 1206, Object 5, already processed.
+Skipping Scene 1214, Object 6, already processed.
+Skipping Scene 1393, Object 6, already processed.
+Skipping Scene 1441, Object 3, already processed.
+Skipping Scene 1452, Object 1, already processed.
+Skipping Scene 1512, Object 3, already processed.
+Skipping Scene 1546, Object 1, already processed.
+Skipping Scene 1566, Object 2, already processed.
+Skipping Scene 1608, Object 2, already processed.
+Skipping Scene 1626, Object 5, already processed.
+Skipping Scene 1632, Object 5, already processed.
+Skipping Scene 1670, Object 6, already processed.
+Skipping Scene 1684, Object 4, already processed.
+Skipping Scene 1720, Object 3, already processed.
+Skipping Scene 1727, Object 1, already processed.
+Skipping Scene 1745, Object 9, already processed.
+Skipping Scene 1746, Object 5, already processed.
+Skipping Scene 1824, Object 4, already processed.
+Skipping Scene 1834, Object 5, already processed.
+Skipping Scene 1897, Object 2, already processed.
+Skipping Scene 2088, Object 2, already processed.
+Skipping Scene 2215, Object 1, already processed.
+Skipping Scene 2233, Object 2, already processed.
+Skipping Scene 2276, Object 2, already processed.
+Skipping Scene 2372, Object 3, already processed.
+Skipping Scene 2404, Object 4, already processed.
+Skipping Scene 2446, Object 4, already processed.
+Skipping Scene 2537, Object 3, already processed.
+Skipping Scene 2646, Object 3, already processed.
+Skipping Scene 2819, Object 4, already processed.
+Skipping Scene 2884, Object 2, already processed.
+Skipping Scene 3033, Object 1, already processed.
+Skipping Scene 3046, Object 5, already processed.
+
+🎯 Accuracy: 84.00% (42/50)
+📂 Results saved to data/output/mimo-v2.5_split0_hard_occlusion_fixed_molmo/split_0/out_easy_yes_ambi.json
+Total Samples: 50
+Correct Predictions: 42
+Accuracy: 84.00%
+Total Samples: 50
+Correct Reasoning Predictions: 46
+RSR Accuracy: 92.00%
+Total number of examples in [SPLIT 0] of [SET medium_no_ambi]: 50
+Resuming from data/output/mimo-v2.5_split0_hard_occlusion_fixed_molmo/split_0/out_medium_no_ambi.json: loaded 50 existing result(s).
+Skipping Scene 79, Object 3, already processed.
+Skipping Scene 206, Object 6, already processed.
+Skipping Scene 348, Object 1, already processed.
+Skipping Scene 390, Object 7, already processed.
+Skipping Scene 422, Object 6, already processed.
+Skipping Scene 491, Object 5, already processed.
+Skipping Scene 610, Object 2, already processed.
+Skipping Scene 913, Object 3, already processed.
+Skipping Scene 944, Object 4, already processed.
+Skipping Scene 988, Object 1, already processed.
+Skipping Scene 1064, Object 5, already processed.
+Skipping Scene 1104, Object 8, already processed.
+Skipping Scene 1216, Object 2, already processed.
+Skipping Scene 1449, Object 3, already processed.
+Skipping Scene 1631, Object 7, already processed.
+Skipping Scene 1670, Object 11, already processed.
+Skipping Scene 1697, Object 1, already processed.
+Skipping Scene 1755, Object 7, already processed.
+Skipping Scene 1786, Object 3, already processed.
+Skipping Scene 1860, Object 2, already processed.
+Skipping Scene 1948, Object 1, already processed.
+Skipping Scene 2037, Object 1, already processed.
+Skipping Scene 2052, Object 6, already processed.
+Skipping Scene 2284, Object 4, already processed.
+Skipping Scene 2520, Object 1, already processed.
+Skipping Scene 2862, Object 4, already processed.
+Skipping Scene 3288, Object 1, already processed.
+Skipping Scene 3661, Object 1, already processed.
+Skipping Scene 3789, Object 1, already processed.
+Skipping Scene 3961, Object 4, already processed.
+Skipping Scene 4020, Object 1, already processed.
+Skipping Scene 4098, Object 2, already processed.
+Skipping Scene 4409, Object 4, already processed.
+Skipping Scene 4877, Object 4, already processed.
+Skipping Scene 6726, Object 6, already processed.
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+FutureWarning: The `device` argument is deprecated and will be removed in v5 of Transformers.
+UserWarning: torch.utils.checkpoint: the use_reentrant parameter should be passed explicitly. In version 2.4 we will raise an exception if use_reentrant is not passed. use_reentrant=False is recommended, but if you need to preserve the current default behavior, you can pass use_reentrant=True. Refer to docs for more details on the differences between the two variants.
+UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+Skipping Scene 6751, Object 10, already processed.
+Skipping Scene 6758, Object 8, already processed.
+Skipping Scene 6817, Object 1, already processed.
+Skipping Scene 6862, Object 2, already processed.
+Skipping Scene 6874, Object 8, already processed.
+Skipping Scene 6897, Object 4, already processed.
+Skipping Scene 6903, Object 8, already processed.
+Skipping Scene 6938, Object 1, already processed.
+Skipping Scene 6962, Object 3, already processed.
+Skipping Scene 6991, Object 6, already processed.
+Skipping Scene 7024, Object 2, already processed.
+Skipping Scene 7025, Object 3, already processed.
+Skipping Scene 7029, Object 2, already processed.
+Skipping Scene 7029, Object 8, already processed.
+Skipping Scene 7163, Object 10, already processed.
+
+🎯 Accuracy: 62.00% (31/50)
+📂 Results saved to data/output/mimo-v2.5_split0_hard_occlusion_fixed_molmo/split_0/out_medium_no_ambi.json
+Total Samples: 50
+Correct Predictions: 31
+Accuracy: 62.00%
+Total Samples: 50
+Correct Reasoning Predictions: 29
+RSR Accuracy: 58.00%
+Total number of examples in [SPLIT 0] of [SET medium_yes_ambi]: 50
+Resuming from data/output/mimo-v2.5_split0_hard_occlusion_fixed_molmo/split_0/out_medium_yes_ambi.json: loaded 50 existing result(s).
+Skipping Scene 298, Object 3, already processed.
+Skipping Scene 345, Object 1, already processed.
+Skipping Scene 358, Object 4, already processed.
+Skipping Scene 395, Object 2, already processed.
+Skipping Scene 460, Object 6, already processed.
+Skipping Scene 501, Object 4, already processed.
+Skipping Scene 771, Object 3, already processed.
+Skipping Scene 774, Object 4, already processed.
+Skipping Scene 820, Object 2, already processed.
+Skipping Scene 1042, Object 7, already processed.
+Skipping Scene 1078, Object 2, already processed.
+Skipping Scene 1115, Object 1, already processed.
+Skipping Scene 1125, Object 3, already processed.
+Skipping Scene 1269, Object 1, already processed.
+Skipping Scene 1357, Object 5, already processed.
+Skipping Scene 1494, Object 6, already processed.
+Skipping Scene 1498, Object 1, already processed.
+Skipping Scene 1500, Object 7, already processed.
+Skipping Scene 1508, Object 1, already processed.
+Skipping Scene 1524, Object 3, already processed.
+Skipping Scene 1662, Object 11, already processed.
+Skipping Scene 1827, Object 6, already processed.
+Skipping Scene 1860, Object 8, already processed.
+Skipping Scene 1871, Object 8, already processed.
+Skipping Scene 1962, Object 8, already processed.
+Skipping Scene 1963, Object 4, already processed.
+Skipping Scene 1978, Object 4, already processed.
+Skipping Scene 2000, Object 5, already processed.
+Skipping Scene 2078, Object 5, already processed.
+Skipping Scene 2157, Object 8, already processed.
+Skipping Scene 2163, Object 6, already processed.
+Skipping Scene 2179, Object 4, already processed.
+Skipping Scene 2275, Object 2, already processed.
+Skipping Scene 2313, Object 3, already processed.
+Skipping Scene 2448, Object 1, already processed.
+Skipping Scene 2516, Object 2, already processed.
+Skipping Scene 2541, Object 6, already processed.
+Skipping Scene 2765, Object 3, already processed.
+Skipping Scene 2867, Object 5, already processed.
+Skipping Scene 2973, Object 5, already processed.
+Skipping Scene 3078, Object 2, already processed.
+Skipping Scene 3216, Object 4, already processed.
+Skipping Scene 3217, Object 7, already processed.
+Skipping Scene 3309, Object 6, already processed.
+Skipping Scene 3357, Object 3, already processed.
+Skipping Scene 3374, Object 5, already processed.
+Skipping Scene 3686, Object 3, already processed.
+Skipping Scene 3908, Object 3, already processed.
+Skipping Scene 4189, Object 2, already processed.
+Skipping Scene 4351, Object 1, already processed.
+
+🎯 Accuracy: 64.00% (32/50)
+📂 Results saved to data/output/mimo-v2.5_split0_hard_occlusion_fixed_molmo/split_0/out_medium_yes_ambi.json
+Total Samples: 50
+Correct Predictions: 32
+Accuracy: 64.00%
+Total Samples: 50
+Correct Reasoning Predictions: 29
+RSR Accuracy: 58.00%
+Total number of examples in [SPLIT 0] of [SET hard_no_ambi]: 50
+Processing Scene 827, Object 7...
+✅ Scene 827, Object 7: IoU=0.3194, ❌
+Processing Scene 1113, Object 1...
+✅ Scene 1113, Object 1: IoU=0.0000, ❌
+Processing Scene 1312, Object 8...
+✅ Scene 1312, Object 8: IoU=0.0000, ❌
+Processing Scene 1318, Object 1...
+✅ Scene 1318, Object 1: IoU=0.0000, ❌
+Processing Scene 1459, Object 3...
+✅ Scene 1459, Object 3: IoU=0.7430, ✔
+Processing Scene 1733, Object 3...
+✅ Scene 1733, Object 3: IoU=0.0000, ❌
+Processing Scene 1784, Object 7...
+✅ Scene 1784, Object 7: IoU=0.0000, ❌
+Processing Scene 1942, Object 3...
+✅ Scene 1942, Object 3: IoU=0.0000, ❌
+Processing Scene 1996, Object 6...
+✅ Scene 1996, Object 6: IoU=0.8706, ✔
+Processing Scene 2274, Object 3...
+✅ Scene 2274, Object 3: IoU=0.0000, ❌
+Processing Scene 3125, Object 5...
+✅ Scene 3125, Object 5: IoU=0.0000, ❌
+Processing Scene 3576, Object 2...
+✅ Scene 3576, Object 2: IoU=0.0000, ❌
+Processing Scene 3576, Object 4...
+✅ Scene 3576, Object 4: IoU=0.0000, ❌
+Processing Scene 4992, Object 5...
+✅ Scene 4992, Object 5: IoU=0.0000, ❌
+Processing Scene 5155, Object 5...
+✅ Scene 5155, Object 5: IoU=0.0000, ❌
+Processing Scene 5447, Object 6...
+✅ Scene 5447, Object 6: IoU=0.2600, ❌
+Processing Scene 5778, Object 6...
+✅ Scene 5778, Object 6: IoU=0.0000, ❌
+Processing Scene 6732, Object 1...
+✅ Scene 6732, Object 1: IoU=0.0001, ❌
+Processing Scene 6755, Object 4...
+✅ Scene 6755, Object 4: IoU=0.0033, ❌
+Processing Scene 6760, Object 5...
+✅ Scene 6760, Object 5: IoU=0.0000, ❌
+Processing Scene 6784, Object 8...
+✅ Scene 6784, Object 8: IoU=0.0044, ❌
+Processing Scene 6801, Object 13...
+✅ Scene 6801, Object 13: IoU=0.0000, ❌
+Processing Scene 6807, Object 1...
+✅ Scene 6807, Object 1: IoU=0.0000, ❌
+Processing Scene 6835, Object 7...
+✅ Scene 6835, Object 7: IoU=0.9584, ✔
+Processing Scene 6837, Object 5...
+✅ Scene 6837, Object 5: IoU=0.0000, ❌
+Processing Scene 6870, Object 1...
+✅ Scene 6870, Object 1: IoU=0.9897, ✔
+Processing Scene 6873, Object 6...
+✅ Scene 6873, Object 6: IoU=0.0000, ❌
+Processing Scene 6941, Object 2...
+✅ Scene 6941, Object 2: IoU=0.0000, ❌
+Processing Scene 6949, Object 10...
+✅ Scene 6949, Object 10: IoU=0.0000, ❌
+Processing Scene 6971, Object 5...
+✅ Scene 6971, Object 5: IoU=0.0000, ❌
+Processing Scene 6971, Object 19...
+✅ Scene 6971, Object 19: IoU=0.0000, ❌
+Processing Scene 7074, Object 1...
+✅ Scene 7074, Object 1: IoU=0.0000, ❌
+Processing Scene 7084, Object 4...
+✅ Scene 7084, Object 4: IoU=0.9535, ✔
+Processing Scene 7108, Object 11...
+✅ Scene 7108, Object 11: IoU=0.0000, ❌
+Processing Scene 7146, Object 6...
+✅ Scene 7146, Object 6: IoU=0.9849, ✔
+Processing Scene 7175, Object 1...
+✅ Scene 7175, Object 1: IoU=0.0000, ❌
+Processing Scene 7228, Object 4...
+✅ Scene 7228, Object 4: IoU=0.0000, ❌
+Processing Scene 7239, Object 12...
+✅ Scene 7239, Object 12: IoU=0.0000, ❌
+Processing Scene 7271, Object 1...
+✅ Scene 7271, Object 1: IoU=0.9838, ✔
+Processing Scene 7281, Object 6...
+✅ Scene 7281, Object 6: IoU=0.0000, ❌
+Processing Scene 7291, Object 2...
+✅ Scene 7291, Object 2: IoU=0.0000, ❌
+Processing Scene 7310, Object 1...
+✅ Scene 7310, Object 1: IoU=0.0000, ❌
+Processing Scene 7321, Object 5...
+✅ Scene 7321, Object 5: IoU=0.0000, ❌
+Processing Scene 7340, Object 5...
+✅ Scene 7340, Object 5: IoU=0.0002, ❌
+Processing Scene 7346, Object 4...
+✅ Scene 7346, Object 4: IoU=0.9870, ✔
+Processing Scene 7348, Object 3...
+✅ Scene 7348, Object 3: IoU=0.0000, ❌
+Processing Scene 7368, Object 2...
+✅ Scene 7368, Object 2: IoU=0.0000, ❌
+Processing Scene 7387, Object 2...
+✅ Scene 7387, Object 2: IoU=0.0000, ❌
+Processing Scene 7404, Object 5...
+✅ Scene 7404, Object 5: IoU=0.0000, ❌
+Processing Scene 7433, Object 10...
+✅ Scene 7433, Object 10: IoU=0.0000, ❌
+
+🎯 Accuracy: 16.00% (8/50)
+📂 Results saved to data/output/mimo-v2.5_split0_hard_occlusion_fixed_molmo/split_0/out_hard_no_ambi.json
+Total Samples: 50
+Correct Predictions: 8
+Accuracy: 16.00%
+Total Samples: 50
+Correct Reasoning Predictions: 10
+RSR Accuracy: 20.00%
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+FutureWarning: The `device` argument is deprecated and will be removed in v5 of Transformers.
+UserWarning: torch.utils.checkpoint: the use_reentrant parameter should be passed explicitly. In version 2.4 we will raise an exception if use_reentrant is not passed. use_reentrant=False is recommended, but if you need to preserve the current default behavior, you can pass use_reentrant=True. Refer to docs for more details on the differences between the two variants.
+UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://token-plan-cn.xiaomimimo.com/v1/chat/completions "HTTP/1.1 200 OK"
+Total number of examples in [SPLIT 0] of [SET hard_yes_ambi]: 50
+Processing Scene 59, Object 1...
+✅ Scene 59, Object 1: IoU=0.0000, ❌
+Processing Scene 242, Object 5...
+✅ Scene 242, Object 5: IoU=0.0000, ❌
+Processing Scene 691, Object 4...
+✅ Scene 691, Object 4: IoU=0.0000, ❌
+Processing Scene 815, Object 2...
+✅ Scene 815, Object 2: IoU=0.0000, ❌
+Processing Scene 823, Object 2...
+✅ Scene 823, Object 2: IoU=0.1297, ❌
+Processing Scene 1072, Object 7...
+✅ Scene 1072, Object 7: IoU=0.0000, ❌
+Processing Scene 1094, Object 5...
+✅ Scene 1094, Object 5: IoU=0.9853, ✔
+Processing Scene 1101, Object 6...
+✅ Scene 1101, Object 6: IoU=0.0000, ❌
+Processing Scene 1109, Object 1...
+✅ Scene 1109, Object 1: IoU=0.0000, ❌
+Processing Scene 1365, Object 1...
+✅ Scene 1365, Object 1: IoU=0.9744, ✔
+Processing Scene 1365, Object 4...
+✅ Scene 1365, Object 4: IoU=0.9744, ✔
+Processing Scene 1383, Object 2...
+✅ Scene 1383, Object 2: IoU=0.0000, ❌
+Processing Scene 1394, Object 6...
+✅ Scene 1394, Object 6: IoU=0.2015, ❌
+Processing Scene 1419, Object 3...
+✅ Scene 1419, Object 3: IoU=0.0000, ❌
+Processing Scene 1449, Object 5...
+✅ Scene 1449, Object 5: IoU=0.9906, ✔
+Processing Scene 1556, Object 2...
+✅ Scene 1556, Object 2: IoU=0.0321, ❌
+Processing Scene 1657, Object 6...
+✅ Scene 1657, Object 6: IoU=0.3205, ❌
+Processing Scene 1703, Object 4...
+✅ Scene 1703, Object 4: IoU=0.9704, ✔
+Processing Scene 1709, Object 5...
+✅ Scene 1709, Object 5: IoU=0.0000, ❌
+Processing Scene 1711, Object 1...
+✅ Scene 1711, Object 1: IoU=0.0000, ❌
+Processing Scene 1755, Object 10...
+✅ Scene 1755, Object 10: IoU=0.0000, ❌
+Processing Scene 1842, Object 9...
+✅ Scene 1842, Object 9: IoU=0.0000, ❌
+Processing Scene 1958, Object 6...
+✅ Scene 1958, Object 6: IoU=0.0000, ❌
+Processing Scene 1961, Object 9...
+✅ Scene 1961, Object 9: IoU=0.0000, ❌
+Processing Scene 2014, Object 6...
+✅ Scene 2014, Object 6: IoU=0.0000, ❌
+Processing Scene 2030, Object 2...
+✅ Scene 2030, Object 2: IoU=0.0000, ❌
+Processing Scene 2035, Object 4...
+✅ Scene 2035, Object 4: IoU=0.0000, ❌
+Processing Scene 2096, Object 4...
+✅ Scene 2096, Object 4: IoU=0.0000, ❌
+Processing Scene 2186, Object 5...
+✅ Scene 2186, Object 5: IoU=0.0000, ❌
+Processing Scene 2310, Object 8...
+✅ Scene 2310, Object 8: IoU=0.0000, ❌
+Processing Scene 2355, Object 9...
+✅ Scene 2355, Object 9: IoU=0.9887, ✔
+Processing Scene 2357, Object 9...
+✅ Scene 2357, Object 9: IoU=0.0000, ❌
+Processing Scene 2804, Object 2...
+✅ Scene 2804, Object 2: IoU=0.0000, ❌
+Processing Scene 2839, Object 1...
+✅ Scene 2839, Object 1: IoU=0.0000, ❌
+Processing Scene 3486, Object 7...
+✅ Scene 3486, Object 7: IoU=0.0000, ❌
+Processing Scene 3724, Object 2...
+✅ Scene 3724, Object 2: IoU=0.0000, ❌
+Processing Scene 3727, Object 4...
+✅ Scene 3727, Object 4: IoU=0.0000, ❌
+Processing Scene 4015, Object 4...
+✅ Scene 4015, Object 4: IoU=0.0000, ❌
+Processing Scene 4018, Object 3...
+✅ Scene 4018, Object 3: IoU=0.9838, ✔
+Processing Scene 4109, Object 5...
+✅ Scene 4109, Object 5: IoU=0.0000, ❌
+Processing Scene 4156, Object 3...
+✅ Scene 4156, Object 3: IoU=0.0001, ❌
+Processing Scene 4232, Object 2...
+✅ Scene 4232, Object 2: IoU=0.4022, ❌
+Processing Scene 4570, Object 3...
+✅ Scene 4570, Object 3: IoU=0.5166, ✔
+Processing Scene 5062, Object 2...
+✅ Scene 5062, Object 2: IoU=0.0000, ❌
+Processing Scene 5076, Object 3...
+✅ Scene 5076, Object 3: IoU=0.0000, ❌
+Processing Scene 5110, Object 4...
+✅ Scene 5110, Object 4: IoU=0.9837, ✔
+Processing Scene 5223, Object 4...
+✅ Scene 5223, Object 4: IoU=0.0005, ❌
+Processing Scene 5359, Object 11...
+✅ Scene 5359, Object 11: IoU=0.0000, ❌
+Processing Scene 5368, Object 14...
+✅ Scene 5368, Object 14: IoU=0.0002, ❌
+Processing Scene 5405, Object 4...
+✅ Scene 5405, Object 4: IoU=0.0000, ❌
+
+🎯 Accuracy: 18.00% (9/50)
+📂 Results saved to data/output/mimo-v2.5_split0_hard_occlusion_fixed_molmo/split_0/out_hard_yes_ambi.json
+Total Samples: 50
+Correct Predictions: 9
+Accuracy: 18.00%
+Total Samples: 50
+Correct Reasoning Predictions: 11
+RSR Accuracy: 22.00%
+============================================================
+easy_no_ambi             : RSR 94.00% | SSR 82.00% | n=50
+easy_yes_ambi            : RSR 92.00% | SSR 84.00% | n=50
+medium_no_ambi           : RSR 58.00% | SSR 62.00% | n=50
+medium_yes_ambi          : RSR 58.00% | SSR 64.00% | n=50
+hard_no_ambi             : RSR 20.00% | SSR 16.00% | n=50
+hard_yes_ambi            : RSR 22.00% | SSR 18.00% | n=50
+------------------------------------------------------------
+OVERALL                  : RSR 57.33% | SSR 54.33% | n=300
+============================================================

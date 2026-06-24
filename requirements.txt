@@ -1,0 +1,41 @@
+# FreeGrasp Project Dependencies
+# Core dependencies
+numpy
+scipy
+open3d
+Pillow
+tqdm
+
+# Computer Vision
+opencv-python
+
+# Deep Learning (choose one based on your CUDA version)
+torch
+torchvision
+
+# Machine Learning & Transformers
+transformers
+
+# Data Processing
+pandas
+
+# Visualization
+matplotlib
+
+# API Clients
+openai
+
+# GraspNet API (may need to install from GitHub)
+# git+https://github.com/graspnetapi/graspnetAPI.git
+
+# Ray for distributed computing (optional, used in LangSAM)
+# ray
+
+# Other potential dependencies
+argparse  # built-in
+json  # built-in
+base64  # built-in
+io  # built-in
+re  # built-in
+os  # built-in
+logging  # built-in
