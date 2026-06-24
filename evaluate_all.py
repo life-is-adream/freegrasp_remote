@@ -24,6 +24,11 @@ def parse_args(argv=None):
             "candidate_grasp_fewshot_json",
             "candidate_grasp_spatial_json",
             "candidate_grasp_semantic_json",
+            "target_first_grasp_planner_json",
+            "target_first_grasp_planner_v7_json",
+            "target_first_grasp_geometry_v8_json",
+            "target_first_evidence_gate_v9_json",
+            "hard_blocker_first_v10_json",
         ],
         default="legacy",
     )
@@ -32,16 +37,23 @@ def parse_args(argv=None):
         "--mimo-retry-mode",
         choices=[
             "none",
+            "original_protocol",
             "id_repair",
             "hard_review",
             "target_review",
             "roborefer_verify",
             "candidate_verify",
             "first_grasp_verify",
+            "planner_consistency_repair",
+            "geometry_consistency_repair",
         ],
         default="none",
     )
-    parser.add_argument("--segmentation-variant", choices=["baseline", "point_retry"], default="baseline")
+    parser.add_argument(
+        "--segmentation-variant",
+        choices=["baseline", "point_retry", "geometric_consistency"],
+        default="baseline",
+    )
     parser.add_argument(
         "--subset-policy",
         choices=[
@@ -58,7 +70,26 @@ def parse_args(argv=None):
             "candidate_grasp_fewshot_v3",
             "candidate_grasp_spatial_v4",
             "candidate_grasp_semantic_v5",
+            "target_first_grasp_planner_v6",
+            "target_first_grasp_planner_v7",
+            "target_first_grasp_geometry_v8",
+            "target_first_evidence_gate_v9",
+            "hard_blocker_first_v10",
+            "automatic_evidence_v1",
+            "automatic_no_blocker_first",
+            "automatic_no_geometry_repair",
+            "automatic_no_id_repair",
         ],
+        default="none",
+    )
+    parser.add_argument(
+        "--routing-variant",
+        choices=["none", "count_only", "vlm_two_stage", "predicted_geometry"],
+        default="none",
+    )
+    parser.add_argument(
+        "--feature-source",
+        choices=["none", "predicted", "oracle_feature"],
         default="none",
     )
     parser.add_argument("--run-dir", default=None, help="Existing or new run directory.")
@@ -96,17 +127,62 @@ def _subset_config(
     mimo_retry_mode,
     segmentation_variant,
     subset_policy,
+    routing_variant="none",
+    feature_source="none",
+    route_guard_variant="none",
 ):
     config = {
         "prompt_variant": prompt_variant,
         "mimo_retry_mode": mimo_retry_mode,
         "segmentation_variant": segmentation_variant,
+        "routing_variant": routing_variant,
+        "feature_source": feature_source,
+        "uses_benchmark_difficulty": False,
+        "uses_gt_features": False,
+        "protocol_ablation": "full",
     }
     if subset_policy == "none":
         return config
 
+    if subset_policy == "original_protocol":
+        return {
+            "prompt_variant": "legacy_old",
+            "mimo_retry_mode": "none",
+            "segmentation_variant": "baseline",
+            "routing_variant": "none",
+            "feature_source": "none",
+            "uses_benchmark_difficulty": False,
+            "uses_gt_features": False,
+            "protocol_ablation": "full",
+        }
+
+    automatic_policies = {
+        "automatic_evidence_v1": "full",
+        "automatic_no_blocker_first": "no_blocker_first",
+        "automatic_no_geometry_repair": "no_geometry_repair",
+        "automatic_no_id_repair": "no_id_repair",
+    }
+    if subset_policy in automatic_policies:
+        automatic_routing = (
+            routing_variant if routing_variant != "none" else "predicted_geometry"
+        )
+        automatic_feature_source = feature_source
+        if automatic_routing == "predicted_geometry" and feature_source == "none":
+            automatic_feature_source = "predicted"
+        return {
+            "prompt_variant": "legacy",
+            "mimo_retry_mode": "none",
+            "segmentation_variant": segmentation_variant,
+            "routing_variant": automatic_routing,
+            "feature_source": automatic_feature_source,
+            "uses_benchmark_difficulty": False,
+            "uses_gt_features": False,
+            "protocol_ablation": automatic_policies[subset_policy],
+        }
+
     if subset_policy not in {
         "observed_best_v1",
+        "original_protocol",
         "easy_direct_v1",
         "easy_direct_hard_occlusion_v1",
         "best_known_v1",
@@ -118,6 +194,15 @@ def _subset_config(
         "candidate_grasp_fewshot_v3",
         "candidate_grasp_spatial_v4",
         "candidate_grasp_semantic_v5",
+        "target_first_grasp_planner_v6",
+        "target_first_grasp_planner_v7",
+        "target_first_grasp_geometry_v8",
+        "target_first_evidence_gate_v9",
+        "hard_blocker_first_v10",
+        "automatic_evidence_v1",
+        "automatic_no_blocker_first",
+        "automatic_no_geometry_repair",
+        "automatic_no_id_repair",
     }:
         raise ValueError(f"Unknown subset_policy: {subset_policy}")
 
@@ -218,6 +303,77 @@ def _subset_config(
         config["mimo_retry_mode"] = "first_grasp_verify"
         config["segmentation_variant"] = "point_retry"
 
+    if subset_policy == "target_first_grasp_planner_v6" and subset_name.startswith("easy_"):
+        config["prompt_variant"] = "direct_target"
+        config["mimo_retry_mode"] = "id_repair"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy == "target_first_grasp_planner_v6" and subset_name.startswith("medium_"):
+        config["prompt_variant"] = "target_first_grasp_planner_json"
+        config["mimo_retry_mode"] = "first_grasp_verify"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy == "target_first_grasp_planner_v6" and subset_name.startswith("hard_"):
+        config["prompt_variant"] = "target_first_grasp_planner_json"
+        config["mimo_retry_mode"] = "first_grasp_verify"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy == "target_first_grasp_planner_v7" and subset_name.startswith("easy_"):
+        config["prompt_variant"] = "direct_target"
+        config["mimo_retry_mode"] = "id_repair"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy == "target_first_grasp_planner_v7" and subset_name.startswith("medium_"):
+        config["prompt_variant"] = "target_first_grasp_planner_v7_json"
+        config["mimo_retry_mode"] = "planner_consistency_repair"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy == "target_first_grasp_planner_v7" and subset_name.startswith("hard_"):
+        config["prompt_variant"] = "target_first_grasp_planner_v7_json"
+        config["mimo_retry_mode"] = "planner_consistency_repair"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy == "target_first_grasp_geometry_v8" and subset_name.startswith("easy_"):
+        config["prompt_variant"] = "direct_target"
+        config["mimo_retry_mode"] = "id_repair"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy == "target_first_grasp_geometry_v8" and subset_name.startswith("medium_"):
+        config["prompt_variant"] = "target_first_grasp_geometry_v8_json"
+        config["mimo_retry_mode"] = "geometry_consistency_repair"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy == "target_first_grasp_geometry_v8" and subset_name.startswith("hard_"):
+        config["prompt_variant"] = "target_first_grasp_geometry_v8_json"
+        config["mimo_retry_mode"] = "geometry_consistency_repair"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy in {
+        "target_first_evidence_gate_v9",
+        "hard_blocker_first_v10",
+    } and subset_name.startswith("easy_"):
+        config["prompt_variant"] = "direct_target"
+        config["mimo_retry_mode"] = "id_repair"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy in {
+        "target_first_evidence_gate_v9",
+        "hard_blocker_first_v10",
+    } and subset_name.startswith("medium_"):
+        config["prompt_variant"] = "target_first_evidence_gate_v9_json"
+        config["mimo_retry_mode"] = "geometry_consistency_repair"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy == "target_first_evidence_gate_v9" and subset_name.startswith("hard_"):
+        config["prompt_variant"] = "target_first_evidence_gate_v9_json"
+        config["mimo_retry_mode"] = "id_repair"
+        config["segmentation_variant"] = "point_retry"
+
+    if subset_policy == "hard_blocker_first_v10" and subset_name.startswith("hard_"):
+        config["prompt_variant"] = "hard_blocker_first_v10_json"
+        config["mimo_retry_mode"] = "id_repair"
+        config["segmentation_variant"] = "point_retry"
+
     if subset_policy == "easy_direct_hard_occlusion_v1" and subset_name.startswith("hard_"):
         config["prompt_variant"] = "hard_occlusion"
         config["mimo_retry_mode"] = "id_repair"
@@ -266,6 +422,9 @@ def evaluate_pipeline(
     mimo_retry_mode="none",
     segmentation_variant="baseline",
     subset_policy="none",
+    routing_variant="none",
+    feature_source="none",
+    route_guard_variant="none",
     reuse_molmo=True,
     resume=True,
     run_dir=None,
@@ -300,6 +459,8 @@ def evaluate_pipeline(
             mimo_retry_mode,
             segmentation_variant,
             subset_policy,
+            routing_variant,
+            feature_source,
         )
         subset_configs[subset_name] = config
         scores[subset_name] = evaluate_subset(
@@ -311,6 +472,10 @@ def evaluate_pipeline(
             max_output_tokens=max_output_tokens,
             mimo_retry_mode=config["mimo_retry_mode"],
             segmentation_variant=config["segmentation_variant"],
+            routing_variant=config["routing_variant"],
+            feature_source=config["feature_source"],
+            protocol_ablation=config.get("protocol_ablation", "full"),
+            route_guard_variant=route_guard_variant,
             resume=resume,
         )
 
@@ -321,6 +486,17 @@ def evaluate_pipeline(
         "mimo_retry_mode": mimo_retry_mode,
         "segmentation_variant": segmentation_variant,
         "subset_policy": subset_policy,
+        "routing_variant": routing_variant,
+        "feature_source": feature_source,
+        "route_guard_variant": route_guard_variant,
+        "uses_benchmark_difficulty": any(
+            config["uses_benchmark_difficulty"]
+            for config in subset_configs.values()
+        ),
+        "uses_gt_features": any(
+            config["uses_gt_features"]
+            for config in subset_configs.values()
+        ),
         "subset_configs": subset_configs,
         "molmo_cache_policy": molmo_cache_policy,
         "resume": resume,
@@ -349,6 +525,8 @@ if __name__ == "__main__":
         mimo_retry_mode=args.mimo_retry_mode,
         segmentation_variant=args.segmentation_variant,
         subset_policy=args.subset_policy,
+        routing_variant=args.routing_variant,
+        feature_source=args.feature_source,
         reuse_molmo=args.reuse_molmo,
         resume=args.resume,
         run_dir=args.run_dir,

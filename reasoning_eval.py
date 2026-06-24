@@ -125,6 +125,12 @@ def _is_reasoning_success(reasoning, gt_ids):
         return 0
 
 
+def _load_instance_objects(gt_data):
+    if "instances_objects.npy" in gt_data:
+        return gt_data["instances_objects.npy"]
+    return gt_data["instances_objects"]
+
+
 # Process the entire dataset
 def process_dataset(
     df,
@@ -137,6 +143,11 @@ def process_dataset(
     resume=False,
     mimo_retry_mode="none",
     segmentation_variant="baseline",
+    routing_variant="none",
+    feature_source="none",
+    protocol_ablation="full",
+    route_guard_variant="none",
+    frozen_route_assessment=None,
     evaluation_subset=None,
     details_json_path=None,
 ):
@@ -177,7 +188,7 @@ def process_dataset(
             continue
 
         gt_data = np.load(gt_mask_path, allow_pickle=True)
-        gt_masks = gt_data["instances_objects.npy"]
+        gt_masks = _load_instance_objects(gt_data)
 
         try:
             gt_ids = [int(x) + 1 for x in str(gt_id).split(",")]
@@ -200,6 +211,11 @@ def process_dataset(
                 max_output_tokens=max_output_tokens,
                 mimo_retry_mode=mimo_retry_mode,
                 segmentation_variant=segmentation_variant,
+                routing_variant=routing_variant,
+                feature_source=feature_source,
+                protocol_ablation=protocol_ablation,
+                route_guard_variant=route_guard_variant,
+                frozen_route_assessment=frozen_route_assessment,
                 evaluation_subset=evaluation_subset,
             )
             reasoning = prediction.get("reasoning", {}) if isinstance(prediction, dict) else {}

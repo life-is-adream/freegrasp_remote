@@ -5,6 +5,18 @@ import base64
 import numpy as np
 from PIL import Image
 from matplotlib import pyplot as plt
+from utils.constants import LABEL
+from utils.scene_evidence import (
+    apply_conservative_route_guard,
+    apply_target_evidence_route_guard,
+    build_target_evidence_packet,
+    evidence_router_prompt,
+    format_router_input,
+    format_target_evidence_packet,
+    parse_route_assessment,
+    predict_geometry_from_molmo_points,
+    select_consistent_mask,
+)
 
 try:
     import open3d as o3d
@@ -26,8 +38,40 @@ VALID_MIMO_RETRY_MODES = {
     "roborefer_verify",
     "candidate_verify",
     "first_grasp_verify",
+    "planner_consistency_repair",
+    "geometry_consistency_repair",
 }
-VALID_SEGMENTATION_VARIANTS = {"baseline", "point_retry"}
+VALID_SEGMENTATION_VARIANTS = {
+    "baseline",
+    "point_retry",
+    "geometric_consistency",
+}
+VALID_ROUTING_VARIANTS = {
+    "none",
+    "count_only",
+    "vlm_two_stage",
+    "predicted_geometry",
+}
+VALID_PROTOCOL_ABLATIONS = {
+    "full",
+    "no_blocker_first",
+    "no_geometry_repair",
+    "no_id_repair",
+}
+VALID_ROUTE_GUARD_VARIANTS = {
+    "none",
+    "conservative_v1",
+    "target_evidence_v2",
+}
+
+ORACLE_FEATURE_PROMPTS = {
+    "candidate_grasp_semantic_json",
+    "target_first_grasp_planner_json",
+    "target_first_grasp_planner_v7_json",
+    "target_first_grasp_geometry_v8_json",
+    "target_first_evidence_gate_v9_json",
+    "hard_blocker_first_v10_json",
+}
 
 
 def get_coordinates(labeled_text, goal_id):
@@ -175,7 +219,16 @@ def process_grasping_result(output, text):
     if json_match:
         try:
             data = json.loads(json_match.group(0))
-            if isinstance(data.get("first_grasp_decision"), dict):
+            if isinstance(data.get("first_grasp_planning"), dict):
+                decision = data["first_grasp_planning"]
+                object_id = int(
+                    decision.get(
+                        "first_grasp_object_id",
+                        decision.get("object_id", decision.get("selected_object_id")),
+                    )
+                )
+                include_reasoning_json = True
+            elif isinstance(data.get("first_grasp_decision"), dict):
                 decision = data["first_grasp_decision"]
                 object_id = int(
                     decision.get(
@@ -188,7 +241,12 @@ def process_grasping_result(output, text):
                 decision = data.get("decision") if isinstance(data.get("decision"), dict) else data
                 object_id = int(decision.get("object_id", decision.get("selected_object_id")))
                 include_reasoning_json = isinstance(data.get("decision"), dict)
-            class_name = str(decision.get("class_name", decision.get("mask_query", text))).lower()
+            class_name = str(
+                decision.get(
+                    "class_name",
+                    decision.get("first_grasp_label", decision.get("mask_query", text)),
+                )
+            ).lower()
             result = {
                 "selected_object_id": object_id,
                 "class_name": class_name,
@@ -431,6 +489,118 @@ def _get_candidate_grasp_json_prompt(include_fewshot=False):
     )
 
 
+def _get_target_first_grasp_planner_prompt(semantic_noise_robust=False):
+    prompt = (
+        "You are a target-first then first-grasp planner for robotic bin picking with a parallel gripper. "
+        "You will see an RGB image with visible numeric object IDs and a candidate table. The table may include "
+        "label=<short_category>, point coordinates, and spatial ranks. Labels are only hints; trust the image when "
+        "appearance conflicts with a label.\n\n"
+        "Most hard failures come from picking the requested target when the first grasp should remove a direct blocker. "
+        "Therefore solve the task in two stages: first resolve the requested target, then decide the first visible object "
+        "to grasp now.\n\n"
+        "Return exactly one compact JSON object with this schema and no markdown:\n"
+        "{\"target_resolution\":{\"target_object_id\":null,\"target_label\":\"\",\"target_visibility\":"
+        "\"free_visible/visible_but_blocked/mostly_hidden/uncertain\",\"target_evidence\":\"short phrase\"},"
+        "\"first_grasp_planning\":{\"should_grasp_target_directly\":false,"
+        "\"blocking_candidates\":[{\"object_id\":0,\"label\":\"\",\"why_blocks_target\":\"short phrase\","
+        "\"priority\":1}],\"first_grasp_object_id\":0,\"first_grasp_label\":\"short noun phrase\","
+        "\"mask_query\":\"short segmentation phrase\",\"decision_rule\":\"pick_target/remove_direct_blocker\"}}.\n\n"
+        "Rules:\n"
+        "- target_resolution.target_object_id is the visible ID that best matches the requested target, or null if hidden/unclear.\n"
+        "- first_grasp_planning.first_grasp_object_id is the first visible object to grasp now.\n"
+        "- If target_object_id equals first_grasp_object_id, target_visibility must be free_visible and decision_rule must be pick_target.\n"
+        "- If the request says under, behind, covered, blocked, occluded, or not directly reachable, do not pick the requested target; "
+        "choose the direct blocker first.\n"
+        "- If target_visibility is visible_but_blocked or mostly_hidden, should_grasp_target_directly must be false.\n"
+        "- blocking_candidates should include only visible objects that plausibly make physical contact or directly block access.\n"
+        "- Do not choose same-category distractors just because they match the target category; use spatial ranks and image evidence.\n"
+        "- mask_query must be only the chosen first-grasp object's color/category noun phrase, never a relation sentence.\n"
+        "- Do not include location words in mask_query: left, right, top, bottom, center, middle, nearest, farthest, above, below, under.\n"
+        "- Return ONLY the JSON object.\n\n"
+        "Hard negative examples. Examples are not the current image; do not copy IDs.\n"
+        "Example A request: \"orange nearest to image bottom\". If the orange is visible but covered by a box, "
+        "first_grasp_object_id is the box, not the orange.\n"
+        "Example B request: \"pear\". If a power drill lies directly over the pear, do not pick the requested target; "
+        "choose the power drill as the direct blocker.\n"
+        "Example C request: \"flat screwdriver\". If plastic pipes cover the screwdriver, first remove the pipes.\n"
+        "Example D request: \"white box under the toothpaste\". Target is the white box; first grasp is the toothpaste only "
+        "when it directly blocks access."
+    )
+    if not semantic_noise_robust:
+        return prompt
+    return (
+        prompt
+        + "\n\nV7 robustness rules:\n"
+        "- semantic labels are weak hints, not reliable object identities.\n"
+        "- unknown labels mean the semantic mask could not provide a useful category; ignore unknown labels when choosing.\n"
+        "- Never choose by label alone. Use the image, numeric IDs, point location, spatial ranks, and direct physical blocking evidence.\n"
+        "- During planner consistency repair, reject answers that mark a blocked target as free_visible/pick_target."
+    )
+
+
+def _get_target_first_grasp_geometry_prompt():
+    return (
+        _get_target_first_grasp_planner_prompt(semantic_noise_robust=True)
+        + "\n\nV8 geometry rules:\n"
+        "- Use geometry evidence from bbox, center, area_rank, bottom_edge_rank, and candidate relations.\n"
+        "- For phrases like nearest to the image bottom, prefer bottom_edge_rank and bottom_rank over semantic labels.\n"
+        "- For under, covered, blocked, or occluded phrases, inspect overlap/near relations and vertical_order before choosing a blocker.\n"
+        "- Explicitly guard against same-category instance confusion: when multiple candidates share a category, choose by geometry evidence.\n"
+        "- If label, image appearance, and geometry conflict, trust the image plus geometry evidence first."
+    )
+
+
+def _get_target_first_evidence_gate_prompt():
+    return (
+        "You are an evidence-gated target-first grasp planner for robotic bin picking with a parallel gripper. "
+        "You will see an RGB image with visible numeric object IDs and a candidate table with labels, points, ranks, bbox, "
+        "and candidate geometry relations. Solve in two stages: first identify the requested target, then choose the first "
+        "visible object to grasp now.\n\n"
+        "Return exactly one compact JSON object with this schema and no markdown:\n"
+        "{\"target_resolution\":{\"target_object_id\":null,\"target_label\":\"\",\"target_visibility\":"
+        "\"free_visible/visible_but_blocked/mostly_hidden/uncertain\",\"target_evidence\":\"short phrase\"},"
+        "\"first_grasp_planning\":{\"should_grasp_target_directly\":true,"
+        "\"blocking_candidates\":[{\"object_id\":0,\"label\":\"\",\"blocker_evidence\":\"relation id=a->b type=...\","
+        "\"priority\":1}],\"first_grasp_object_id\":0,\"first_grasp_label\":\"short noun phrase\","
+        "\"mask_query\":\"short segmentation phrase\",\"decision_rule\":\"pick_target/remove_direct_blocker\"}}.\n\n"
+        "Rules:\n"
+        "- Spatial words locate the target first; under, behind, lower, bottom, nearest, left, and right are not automatic blocker commands.\n"
+        "- A blocker may be selected only when there is direct relation evidence from Candidate geometry relations: overlap, near, above, or contact-like geometry.\n"
+        "- If blocker evidence is absent, weak, or only semantic, default to grasping the target when it has a visible ID.\n"
+        "- If first_grasp_object_id differs from target_object_id, blocker_evidence must cite the relation and explain why that object directly blocks access.\n"
+        "- Same-category instances must be resolved using point ranks, bbox, center, and bottom_edge_rank before choosing target or blocker.\n"
+        "- mask_query must name only the chosen first-grasp object's color/category noun phrase, never a relation sentence or location phrase.\n"
+        "- Return ONLY the JSON object."
+    )
+
+
+def _get_hard_blocker_first_prompt():
+    return (
+        "You are a hard-scene blocker-first grasp planner for robotic bin picking with a parallel gripper. "
+        "The requested target in this hard subset is not the object to grasp first. Use the target description only "
+        "to localize the hidden, covered, or inaccessible target region, then choose one visible direct blocker to "
+        "remove now. You will see visible numeric object IDs and a candidate table with labels, points, ranks, bbox, "
+        "and candidate geometry relations.\n\n"
+        "Return exactly one compact JSON object with this schema and no markdown:\n"
+        "{\"target_resolution\":{\"target_object_id\":null,\"target_label\":\"\",\"target_visibility\":"
+        "\"visible_but_blocked/mostly_hidden/uncertain\",\"target_evidence\":\"short phrase\"},"
+        "\"first_grasp_planning\":{\"should_grasp_target_directly\":false,"
+        "\"blocking_candidates\":[{\"object_id\":0,\"label\":\"\",\"blocker_evidence\":\"short direct physical evidence\","
+        "\"priority\":1}],\"first_grasp_object_id\":0,\"first_grasp_label\":\"short noun phrase\","
+        "\"mask_query\":\"short segmentation phrase\",\"decision_rule\":\"remove_direct_blocker\"}}.\n\n"
+        "Rules:\n"
+        "- Never return the requested target as the first grasp, even when it has a visible numeric ID.\n"
+        "- Select exactly one visible direct blocker that physically covers, contacts, rests on, or blocks access to the target region.\n"
+        "- Rank image-supported contact/coverage first, then image-supported above/on-top overlap, then other clear overlap.\n"
+        "- Candidate bbox relations and semantic labels are weak hints; near alone is not sufficient evidence of blocking.\n"
+        "- Reject nearby and same-category distractors that do not directly obstruct the localized target region.\n"
+        "- Use point ranks, bbox, center, bottom_edge_rank, and the RGB image to resolve which instance is target context and which is blocker.\n"
+        "- first_grasp_object_id must be one of the visible numeric IDs and blocker_evidence must explain the direct physical obstruction.\n"
+        "- mask_query must name only the chosen blocker's color/category noun phrase, never a relation or location sentence.\n"
+        "- Return ONLY the JSON object."
+    )
+
+
 def get_reasoning_system_prompt(prompt_variant="legacy"):
     if prompt_variant == "visible_id_guard":
         return (
@@ -507,6 +677,23 @@ def get_reasoning_system_prompt(prompt_variant="legacy"):
             "bottom_rank, and center_rank are computed from visible Molmo points and are meant to resolve "
             "phrases such as left, right, top, bottom, nearest to image bottom, center, and same-class spatial order."
         )
+    if prompt_variant == "candidate_grasp_semantic_json":
+        return (
+            get_reasoning_system_prompt("candidate_grasp_spatial_json")
+            + "\n\nUse label=<semantic label> in the candidate table as a short category hint for each visible candidate. "
+            "Color words may describe appearance and may not appear in the semantic label. If label and image disagree, "
+            "trust the image. The label is not a ground-truth object id and must not be copied as an ID."
+        )
+    if prompt_variant == "target_first_grasp_planner_json":
+        return _get_target_first_grasp_planner_prompt()
+    if prompt_variant == "target_first_grasp_planner_v7_json":
+        return _get_target_first_grasp_planner_prompt(semantic_noise_robust=True)
+    if prompt_variant == "target_first_grasp_geometry_v8_json":
+        return _get_target_first_grasp_geometry_prompt()
+    if prompt_variant == "target_first_evidence_gate_v9_json":
+        return _get_target_first_evidence_gate_prompt()
+    if prompt_variant == "hard_blocker_first_v10_json":
+        return _get_hard_blocker_first_prompt()
     if prompt_variant == "json":
         return (
             "You are a robotic system for bin picking, using a parallel gripper. "
@@ -708,21 +895,249 @@ def _candidate_spatial_features(parsed_data):
     return features
 
 
-def _format_visible_object_candidates(parsed_data, include_spatial=False):
+def _clean_candidate_label(label):
+    label = str(label or "").strip().lower()
+    label = re.sub(r"[^a-z0-9_ -]+", "", label)
+    label = re.sub(r"\s+", "_", label)
+    label = re.sub(r"_+", "_", label).strip("_")
+    return label or "unknown"
+
+
+def _semantic_id_to_label(semantic_id):
+    try:
+        semantic_id = int(semantic_id)
+    except (TypeError, ValueError):
+        return "unknown"
+    if semantic_id <= 0:
+        return "unknown"
+    index = semantic_id - 1
+    if 0 <= index < len(LABEL):
+        return _clean_candidate_label(LABEL[index])
+    return f"semantic_{semantic_id}"
+
+
+def _load_semantic_labels_for_candidates(scene_number, parsed_data, npz_dir="data/npz_file"):
+    semantic_file = os.path.join(npz_dir, f"{scene_number}.npz")
+    if not os.path.exists(semantic_file):
+        return {}
+    try:
+        semantic_data = np.load(semantic_file)
+        object_key = "instances_objects" if "instances_objects" in semantic_data else "instances_objects.npy"
+        semantic_key = "instances_semantic" if "instances_semantic" in semantic_data else "instances_semantic.npy"
+        instance_objects = semantic_data[object_key].astype(int)
+        instance_semantic = semantic_data[semantic_key].astype(int)
+    except (KeyError, OSError, ValueError):
+        return {}
+
+    labels = {}
+    for molmo_id, _x, _y, gt_id in parsed_data:
+        if gt_id <= 0:
+            continue
+        mask = instance_objects == int(gt_id)
+        semantic_values = instance_semantic[mask]
+        semantic_values = semantic_values[semantic_values > 0]
+        if semantic_values.size == 0:
+            continue
+        values, counts = np.unique(semantic_values, return_counts=True)
+        semantic_id = int(values[int(np.argmax(counts))])
+        labels[molmo_id] = _semantic_id_to_label(semantic_id)
+    return labels
+
+
+def _bbox_from_mask(mask):
+    ys, xs = np.where(mask > 0)
+    if xs.size == 0 or ys.size == 0:
+        return None
+    return (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))
+
+
+def _bbox_area(bbox):
+    if not bbox:
+        return 0
+    x1, y1, x2, y2 = bbox
+    return max(0, x2 - x1 + 1) * max(0, y2 - y1 + 1)
+
+
+def _bbox_center(bbox):
+    if not bbox:
+        return None
+    x1, y1, x2, y2 = bbox
+    return (int(round((x1 + x2) / 2)), int(round((y1 + y2) / 2)))
+
+
+def _bbox_intersection_area(a, b):
+    if not a or not b:
+        return 0
+    x1 = max(a[0], b[0])
+    y1 = max(a[1], b[1])
+    x2 = min(a[2], b[2])
+    y2 = min(a[3], b[3])
+    if x2 < x1 or y2 < y1:
+        return 0
+    return (x2 - x1 + 1) * (y2 - y1 + 1)
+
+
+def _format_float(value):
+    return f"{float(value):.2f}"
+
+
+def _load_geometry_features_for_candidates(scene_number, parsed_data, npz_dir="data/npz_file"):
+    geometry_file = os.path.join(npz_dir, f"{scene_number}.npz")
+    if not os.path.exists(geometry_file):
+        return {}
+    try:
+        geometry_data = np.load(geometry_file)
+        object_key = "instances_objects" if "instances_objects" in geometry_data else "instances_objects.npy"
+        instance_objects = geometry_data[object_key].astype(int)
+    except (KeyError, OSError, ValueError):
+        return {}
+
+    candidates = {}
+    for molmo_id, _x, _y, gt_id in parsed_data:
+        if gt_id <= 0:
+            continue
+        mask = instance_objects == int(gt_id)
+        bbox = _bbox_from_mask(mask)
+        if bbox is None:
+            continue
+        candidates[molmo_id] = {
+            "bbox": bbox,
+            "area": int(mask.sum()),
+            "center": _bbox_center(bbox),
+            "bottom_edge": int(bbox[3]),
+        }
+
+    if not candidates:
+        return {}
+
+    area_ranks = _rank_lookup([item["area"] for item in candidates.values()], reverse=True)
+    bottom_edge_ranks = _rank_lookup([item["bottom_edge"] for item in candidates.values()], reverse=True)
+    for index, molmo_id in enumerate(candidates):
+        candidates[molmo_id]["area_rank"] = area_ranks[index]
+        candidates[molmo_id]["bottom_edge_rank"] = bottom_edge_ranks[index]
+
+    relations = []
+    ids = list(candidates)
+    for source_id in ids:
+        source = candidates[source_id]
+        for target_id in ids:
+            if source_id == target_id:
+                continue
+            target = candidates[target_id]
+            overlap_area = _bbox_intersection_area(source["bbox"], target["bbox"])
+            min_area = max(1, min(_bbox_area(source["bbox"]), _bbox_area(target["bbox"])))
+            overlap = overlap_area / min_area
+            sx, sy = source["center"]
+            tx, ty = target["center"]
+            distance = float(np.hypot(sx - tx, sy - ty))
+            relation = "overlaps" if overlap > 0 else "near" if distance <= 300 else "separate"
+            if relation == "separate":
+                continue
+            if sy < ty:
+                vertical_order = "above"
+            elif sy > ty:
+                vertical_order = "below"
+            else:
+                vertical_order = "same_y"
+            relations.append(
+                {
+                    "source_id": source_id,
+                    "target_id": target_id,
+                    "relation": relation,
+                    "overlap": round(float(overlap), 2),
+                    "vertical_order": vertical_order,
+                }
+            )
+
+    return {"candidates": candidates, "relations": relations}
+
+
+def _format_visible_object_candidates(
+    parsed_data,
+    include_spatial=False,
+    include_semantic=False,
+    semantic_labels=None,
+    suppress_semantic_placeholders=False,
+    include_geometry=False,
+    geometry_features=None,
+    include_pairwise_relations=True,
+):
     lines = ["Visible object candidates from Molmo:"]
+    semantic_labels = semantic_labels or {}
+    geometry_features = geometry_features or {}
+    geometry_candidates = geometry_features.get("candidates", {})
+
+    def label_text(molmo_id):
+        if not include_semantic:
+            return ""
+        label = _clean_candidate_label(semantic_labels.get(molmo_id, "unknown"))
+        if suppress_semantic_placeholders and re.fullmatch(r"semantic_\d+", label):
+            label = "unknown"
+        return f", label={label}"
+
+    def geometry_text(molmo_id):
+        if not include_geometry:
+            return ""
+        item = geometry_candidates.get(molmo_id)
+        if not item:
+            return ""
+        bbox = item.get("bbox")
+        center = item.get("center")
+        total = max(1, len(geometry_candidates))
+        chunks = []
+        if bbox:
+            chunks.append(f"bbox=({int(bbox[0])},{int(bbox[1])},{int(bbox[2])},{int(bbox[3])})")
+        if center:
+            chunks.append(f"center=({int(center[0])},{int(center[1])})")
+        if "area" in item:
+            chunks.append(f"area={int(item['area'])}")
+        if "area_rank" in item:
+            chunks.append(f"area_rank={int(item['area_rank'])}/{total}")
+        if "bottom_edge_rank" in item:
+            chunks.append(f"bottom_edge_rank={int(item['bottom_edge_rank'])}/{total}")
+        return ", " + ", ".join(chunks) if chunks else ""
+
     if include_spatial:
         for item in _candidate_spatial_features(parsed_data):
             total = item["total"]
             lines.append(
-                f"- id={item['id']}, point=({item['x']}, {item['y']}), "
+                f"- id={item['id']}{label_text(item['id'])}, point=({item['x']}, {item['y']}), "
                 f"region={item['region']}, x_rank={item['x_rank']}/{total}, "
                 f"y_rank={item['y_rank']}/{total}, bottom_rank={item['bottom_rank']}/{total}, "
-                f"center_rank={item['center_rank']}/{total}"
+                f"center_rank={item['center_rank']}/{total}{geometry_text(item['id'])}"
             )
     else:
         for molmo_id, x, y, _gt_id in parsed_data:
-            lines.append(f"- id={molmo_id}, point=({x}, {y})")
+            lines.append(f"- id={molmo_id}{label_text(molmo_id)}, point=({x}, {y}){geometry_text(molmo_id)}")
+    if (
+        include_geometry
+        and include_pairwise_relations
+        and geometry_features.get("relations")
+    ):
+        lines.append("Candidate geometry relations:")
+        for relation in geometry_features["relations"][:24]:
+            lines.append(_format_geometry_relation(relation))
     return "\n".join(lines)
+
+
+def _format_geometry_relation(relation):
+    if "object_a_id" in relation:
+        return (
+            f"- pair id={relation['object_a_id']}<->"
+            f"{relation['object_b_id']}, "
+            f"type={relation.get('relation', 'separate')}, "
+            "bbox_overlap="
+            f"{_format_float(relation.get('bbox_overlap_smaller', 0.0))}, "
+            f"mask_iou={_format_float(relation.get('mask_iou', 0.0))}, "
+            "duplicate_mask="
+            f"{str(bool(relation.get('duplicate_mask_suspect'))).lower()}"
+        )
+    return (
+        f"- relation id={relation['source_id']}->{relation['target_id']}, "
+        f"type={relation.get('relation', 'near')}, "
+        f"overlap={_format_float(relation.get('overlap', 0.0))}, "
+        f"vertical_order={relation.get('vertical_order', 'unknown')}"
+    )
 
 
 def _format_first_grasp_rule_reminder():
@@ -744,20 +1159,158 @@ def _format_spatial_rank_reminder():
     )
 
 
-def _build_reasoning_input_text(input_text, parsed_data, prompt_variant):
+def _format_v6_planner_reminder():
+    return (
+        "V6 planner reminder:\n"
+        "- First fill target_resolution for the requested target.\n"
+        "- Then fill first_grasp_planning for the object to grasp now.\n"
+        "- In hard scenes, target_object_id and first_grasp_object_id are often different."
+    )
+
+
+def _format_v7_planner_reminder():
+    return (
+        "V7 planner reminder:\n"
+        "- Treat unknown labels as missing semantic information, not as object names.\n"
+        "- If the target is described with under, behind, covered, blocked, or occluded, verify blocker choice twice.\n"
+        "- Do not let a noisy label override visual evidence or spatial ranks."
+    )
+
+
+def _format_v8_geometry_reminder():
+    return (
+        "V8 geometry reminder:\n"
+        "- Use bbox and bottom_edge_rank to resolve bottom-nearest and lower-instance requests.\n"
+        "- Use candidate geometry relations to decide whether one visible object directly covers another.\n"
+        "- Same-category candidates require geometry evidence before choosing a target or blocker."
+    )
+
+
+def _format_v9_evidence_gate_reminder():
+    return (
+        "V9 evidence gate reminder:\n"
+        "- Spatial words locate the target before they imply an obstruction plan.\n"
+        "- blocker requires overlap/near relation evidence from Candidate geometry relations.\n"
+        "- Target-conditioned candidates are obstruction-risk hypotheses, not verified blockers.\n"
+        "- Select a blocker only when the RGB image visibly supports coverage, contact, or blocked access.\n"
+        "- Duplicate-mask warnings and 2D image position cannot prove physical obstruction.\n"
+        "- If relation evidence is absent or weak, choose the visible target rather than a nearby distractor."
+    )
+
+
+def _format_v10_blocker_first_reminder():
+    return (
+        "V10 hard blocker-first reminder:\n"
+        "- In hard subsets, never choose the requested target directly; choose one visible direct blocker.\n"
+        "- near alone cannot prove blocking.\n"
+        "- Target-conditioned candidates are obstruction-risk hypotheses, not verified blockers.\n"
+        "- Select a blocker only when the RGB image visibly supports coverage, contact, or blocked access.\n"
+        "- Duplicate-mask warnings and 2D image position cannot prove physical obstruction.\n"
+        "- Reject nearby and same-category distractors that do not obstruct the localized target region."
+    )
+
+
+def _build_reasoning_input_text(
+    input_text,
+    parsed_data,
+    prompt_variant,
+    semantic_labels=None,
+    geometry_features=None,
+    target_evidence_packet=None,
+):
     if prompt_variant in {
         "roborefer_json",
         "candidate_reasoning_json",
         "candidate_grasp_json",
         "candidate_grasp_fewshot_json",
         "candidate_grasp_spatial_json",
+        "candidate_grasp_semantic_json",
+        "target_first_grasp_planner_json",
+        "target_first_grasp_planner_v7_json",
+        "target_first_grasp_geometry_v8_json",
+        "target_first_evidence_gate_v9_json",
+        "hard_blocker_first_v10_json",
     }:
-        include_spatial = prompt_variant == "candidate_grasp_spatial_json"
-        candidate_text = _format_visible_object_candidates(parsed_data, include_spatial=include_spatial)
-        if prompt_variant in {"candidate_grasp_fewshot_json", "candidate_grasp_spatial_json"}:
+        include_spatial = prompt_variant in {
+            "candidate_grasp_spatial_json",
+            "candidate_grasp_semantic_json",
+            "target_first_grasp_planner_json",
+            "target_first_grasp_planner_v7_json",
+            "target_first_grasp_geometry_v8_json",
+            "target_first_evidence_gate_v9_json",
+            "hard_blocker_first_v10_json",
+        }
+        include_semantic = prompt_variant in {
+            "candidate_grasp_semantic_json",
+            "target_first_grasp_planner_json",
+            "target_first_grasp_planner_v7_json",
+            "target_first_grasp_geometry_v8_json",
+            "target_first_evidence_gate_v9_json",
+            "hard_blocker_first_v10_json",
+        }
+        include_geometry = prompt_variant in {
+            "target_first_grasp_geometry_v8_json",
+            "target_first_evidence_gate_v9_json",
+            "hard_blocker_first_v10_json",
+        }
+        candidate_text = _format_visible_object_candidates(
+            parsed_data,
+            include_spatial=include_spatial,
+            include_semantic=include_semantic,
+            semantic_labels=semantic_labels,
+            suppress_semantic_placeholders=prompt_variant in {
+                "target_first_grasp_planner_v7_json",
+                "target_first_grasp_geometry_v8_json",
+                "target_first_evidence_gate_v9_json",
+                "hard_blocker_first_v10_json",
+            },
+            include_geometry=include_geometry,
+            geometry_features=geometry_features,
+            include_pairwise_relations=target_evidence_packet is None,
+        )
+        if (
+            target_evidence_packet is not None
+            and prompt_variant
+            in {
+                "target_first_evidence_gate_v9_json",
+                "hard_blocker_first_v10_json",
+            }
+        ):
+            candidate_text = (
+                f"{format_target_evidence_packet(target_evidence_packet)}"
+                f"\n\n{candidate_text}"
+            )
+        if prompt_variant in {
+            "candidate_grasp_fewshot_json",
+            "candidate_grasp_spatial_json",
+            "candidate_grasp_semantic_json",
+            "target_first_grasp_planner_json",
+            "target_first_grasp_planner_v7_json",
+            "target_first_grasp_geometry_v8_json",
+            "target_first_evidence_gate_v9_json",
+            "hard_blocker_first_v10_json",
+        }:
             candidate_text = f"{candidate_text}\n\n{_format_first_grasp_rule_reminder()}"
-        if prompt_variant == "candidate_grasp_spatial_json":
+        if prompt_variant in {
+            "candidate_grasp_spatial_json",
+            "candidate_grasp_semantic_json",
+            "target_first_grasp_planner_json",
+            "target_first_grasp_planner_v7_json",
+            "target_first_grasp_geometry_v8_json",
+            "target_first_evidence_gate_v9_json",
+            "hard_blocker_first_v10_json",
+        }:
             candidate_text = f"{candidate_text}\n\n{_format_spatial_rank_reminder()}"
+        if prompt_variant == "target_first_grasp_planner_json":
+            candidate_text = f"{candidate_text}\n\n{_format_v6_planner_reminder()}"
+        if prompt_variant == "target_first_grasp_planner_v7_json":
+            candidate_text = f"{candidate_text}\n\n{_format_v7_planner_reminder()}"
+        if prompt_variant == "target_first_grasp_geometry_v8_json":
+            candidate_text = f"{candidate_text}\n\n{_format_v7_planner_reminder()}\n\n{_format_v8_geometry_reminder()}"
+        if prompt_variant == "target_first_evidence_gate_v9_json":
+            candidate_text = f"{candidate_text}\n\n{_format_v7_planner_reminder()}\n\n{_format_v8_geometry_reminder()}\n\n{_format_v9_evidence_gate_reminder()}"
+        if prompt_variant == "hard_blocker_first_v10_json":
+            candidate_text = f"{candidate_text}\n\n{_format_v7_planner_reminder()}\n\n{_format_v8_geometry_reminder()}\n\n{_format_v10_blocker_first_reminder()}"
         return f"{input_text}\n\n{candidate_text}"
     if prompt_variant == "visible_id_guard":
         visible_ids = ", ".join(str(molmo_id) for molmo_id, _x, _y, _gt_id in parsed_data)
@@ -835,6 +1388,105 @@ def _build_first_grasp_verify_text(input_text, parsed_data, previous_output):
     )
 
 
+def _build_target_first_grasp_verify_text(input_text, parsed_data, previous_output, semantic_labels=None):
+    return (
+        f"{input_text}\n\n"
+        f"{_format_visible_object_candidates(parsed_data, include_spatial=True, include_semantic=True, semantic_labels=semantic_labels)}\n\n"
+        f"Previous target-first grasp planner JSON:\n{previous_output}\n\n"
+        "Verify the previous JSON with the v6 two-stage contract:\n"
+        "1. Did target_resolution identify the requested target, not the first grasp object?\n"
+        "2. Did first_grasp_planning choose the first visible object to grasp now?\n"
+        "3. If target_object_id equals first_grasp_object_id, is target_visibility truly free_visible?\n"
+        "4. If the target is under, behind, covered, blocked, occluded, or not reachable, did it choose a direct blocker?\n"
+        "5. Did it avoid same-category distractors and keep mask_query as a short visual noun phrase?\n\n"
+        "If any check fails, correct the JSON. Return corrected JSON only, "
+        "using the target_first_grasp_planner_json schema. No markdown fences."
+    )
+
+
+def _build_planner_consistency_repair_text(input_text, parsed_data, previous_output, semantic_labels=None):
+    return (
+        f"{input_text}\n\n"
+        f"{_format_visible_object_candidates(parsed_data, include_spatial=True, include_semantic=True, semantic_labels=semantic_labels, suppress_semantic_placeholders=True)}\n\n"
+        f"Previous target-first planner JSON:\n{previous_output}\n\n"
+        "Run planner consistency repair for target_first_grasp_planner_v7_json.\n"
+        "Return corrected JSON only. Keep the same schema.\n\n"
+        "Reject and repair these contradictions:\n"
+        "1. target_visibility is blocked, visible_but_blocked, mostly_hidden, occluded, or uncertain but "
+        "should_grasp_target_directly is true.\n"
+        "2. target_visibility is blocked but decision_rule is pick_target.\n"
+        "3. first_grasp_object_id equals target_object_id when the text says under, behind, covered, blocked, "
+        "occluded, hidden, underneath, or not directly reachable.\n"
+        "4. should_grasp_target_directly is false but first_grasp_object_id is absent from blocking_candidates.\n"
+        "5. The selected object is justified only by a noisy semantic label; unknown labels and missing labels must not drive the choice.\n\n"
+        "If the previous JSON is consistent, return it unchanged. Otherwise correct target_resolution, "
+        "blocking_candidates, first_grasp_object_id, first_grasp_label, mask_query, and decision_rule."
+    )
+
+
+def _build_geometry_consistency_repair_text(
+    input_text,
+    parsed_data,
+    previous_output,
+    semantic_labels=None,
+    geometry_features=None,
+    target_evidence_packet=None,
+):
+    candidate_text = _format_visible_object_candidates(
+        parsed_data,
+        include_spatial=True,
+        include_semantic=True,
+        semantic_labels=semantic_labels,
+        suppress_semantic_placeholders=True,
+        include_geometry=True,
+        geometry_features=geometry_features,
+        include_pairwise_relations=target_evidence_packet is None,
+    )
+    packet_text = (
+        f"{format_target_evidence_packet(target_evidence_packet)}\n\n"
+        if target_evidence_packet is not None
+        else ""
+    )
+    return (
+        f"{input_text}\n\n"
+        f"{packet_text}{candidate_text}\n\n"
+        f"Previous target-first geometry planner JSON:\n{previous_output}\n\n"
+        "Run geometry consistency repair for target_first_grasp_geometry_v8_json.\n"
+        "Return corrected JSON only. Keep the same target_resolution and first_grasp_planning schema.\n\n"
+        "Reject and repair these contradictions:\n"
+        "1. The request says nearest to the image bottom, lower, or bottom but the selected instance is not supported by bottom-edge rank or bottom_rank.\n"
+        "2. The request says under, covered, blocked, occluded, or behind but the selected first_grasp_object_id is not supported by overlap/near relations.\n"
+        "3. The answer shows same-category instance confusion: multiple objects match the category but the choice ignores bbox, center, and ranks.\n"
+        "4. target_visibility is blocked, visible_but_blocked, mostly_hidden, occluded, or uncertain but should_grasp_target_directly is true.\n"
+        "5. The selected object is justified only by a noisy semantic label; unknown labels and missing labels must not drive the choice.\n\n"
+        "If the previous JSON is consistent with geometry evidence, return it unchanged. Otherwise correct target_resolution, "
+        "blocking_candidates, first_grasp_object_id, first_grasp_label, mask_query, and decision_rule."
+    )
+
+
+def _build_target_first_grasp_id_repair_text(
+    input_text,
+    parsed_data,
+    previous_output,
+    semantic_labels=None,
+    target_evidence_packet=None,
+):
+    packet_text = (
+        f"{format_target_evidence_packet(target_evidence_packet)}\n\n"
+        if target_evidence_packet is not None
+        else ""
+    )
+    return (
+        f"{input_text}\n\n"
+        f"{packet_text}"
+        f"{_format_visible_object_candidates(parsed_data, include_spatial=True, include_semantic=True, semantic_labels=semantic_labels)}\n\n"
+        f"Previous answer had an invalid or missing first_grasp_planning.first_grasp_object_id:\n{previous_output}\n\n"
+        "Choose exactly one visible object ID as first_grasp_planning.first_grasp_object_id. "
+        "It must be the first visible object to grasp now, not necessarily the requested target object. "
+        "Return corrected JSON only, using the target_first_grasp_planner_json schema. Do not include markdown."
+    )
+
+
 def _build_first_grasp_id_repair_text(input_text, parsed_data, previous_output):
     return (
         f"{input_text}\n\n"
@@ -866,6 +1518,86 @@ def _select_best_logit_mask(masks, boxes, logits):
     return masks[best_index], _box_to_numpy(boxes[best_index]), best_index
 
 
+def _predict_geometrically_consistent_mask(
+    image_pil,
+    candidates,
+    goal_coor,
+):
+    attempts = []
+    masks_across_queries = []
+    confidences = []
+    origins = []
+
+    for query in candidates:
+        masks, boxes, phrases, logits = langsam_actor.predict(image_pil, query)
+        attempt = {"query": query, "num_masks": _num_masks(masks)}
+        attempts.append(attempt)
+        if _num_masks(masks) == 0:
+            attempt["failure_reason"] = "no_masks"
+            continue
+
+        logits_np = np.asarray(_to_numpy(logits)).reshape(-1)
+        for mask_index in range(_num_masks(masks)):
+            masks_across_queries.append(masks[mask_index])
+            confidences.append(
+                float(logits_np[mask_index]) if mask_index < logits_np.size else 0.0
+            )
+            origins.append(
+                {
+                    "query": query,
+                    "mask_index": mask_index,
+                    "bbox": _box_to_numpy(boxes[mask_index]),
+                }
+            )
+
+    if not masks_across_queries:
+        raise Exception("LangSAM failed to segment the object.")
+
+    if goal_coor is None:
+        selected_index = int(np.argmax(confidences))
+        selection = None
+    else:
+        selection = select_consistent_mask(
+            masks_across_queries,
+            confidences,
+            goal_coor,
+        )
+        selected_index = selection.index
+
+    origin = origins[selected_index]
+    selected_attempt = next(
+        attempt for attempt in attempts if attempt["query"] == origin["query"]
+    )
+    selected_attempt["selected_mask_index"] = origin["mask_index"]
+    metadata = {
+        "langsam_queries": [item["query"] for item in attempts],
+        "langsam_attempts": attempts,
+        "langsam_selected_query": origin["query"],
+        "langsam_selected_mask_index": origin["mask_index"],
+        "langsam_mask_contains_point": (
+            selection.contains_point if selection is not None else None
+        ),
+        "langsam_consistency_score": (
+            selection.total_score if selection is not None else None
+        ),
+        "langsam_confidence": confidences[selected_index],
+        "langsam_area_ratio": (
+            selection.area_ratio if selection is not None else None
+        ),
+        "langsam_point_distance": (
+            selection.point_distance if selection is not None else None
+        ),
+        "langsam_failure_reason": (
+            selection.fallback_reason if selection is not None else None
+        ),
+    }
+    return (
+        masks_across_queries[selected_index],
+        origin["bbox"],
+        metadata,
+    )
+
+
 def _predict_langsam_mask(image_pil, query_candidates, goal_coor, segmentation_variant):
     if segmentation_variant not in VALID_SEGMENTATION_VARIANTS:
         raise ValueError(f"Unknown segmentation_variant: {segmentation_variant}")
@@ -874,6 +1606,13 @@ def _predict_langsam_mask(image_pil, query_candidates, goal_coor, segmentation_v
     fallback = None
     fallback_metadata = None
     candidates = [candidate for candidate in query_candidates if candidate]
+
+    if segmentation_variant == "geometric_consistency":
+        return _predict_geometrically_consistent_mask(
+            image_pil,
+            candidates,
+            goal_coor,
+        )
 
     for query in candidates:
         masks, boxes, phrases, logits = langsam_actor.predict(image_pil, query)
@@ -943,6 +1682,24 @@ def _predict_langsam_mask(image_pil, query_candidates, goal_coor, segmentation_v
     raise Exception("LangSAM failed to segment the object.")
 
 
+def _queries_for_segmentation(query_candidates, segmentation_variant):
+    if segmentation_variant == "baseline":
+        return query_candidates[:1]
+    return query_candidates
+
+
+def _automatic_retry_mode(route_mode, protocol_ablation):
+    if protocol_ablation == "no_id_repair":
+        return (
+            "geometry_consistency_repair"
+            if route_mode == "target_first"
+            else "none"
+        )
+    if route_mode == "target_first" and protocol_ablation != "no_geometry_repair":
+        return "geometry_consistency_repair"
+    return "id_repair"
+
+
 def get_prediction_result(
     image,
     path,
@@ -955,11 +1712,24 @@ def get_prediction_result(
     mimo_retry_mode="none",
     segmentation_variant="baseline",
     evaluation_subset=None,
+    routing_variant="none",
+    feature_source="none",
+    protocol_ablation="full",
+    route_guard_variant="none",
+    frozen_route_assessment=None,
 ):
     if mimo_retry_mode not in VALID_MIMO_RETRY_MODES:
         raise ValueError(f"Unknown mimo_retry_mode: {mimo_retry_mode}")
     if segmentation_variant not in VALID_SEGMENTATION_VARIANTS:
         raise ValueError(f"Unknown segmentation_variant: {segmentation_variant}")
+    if routing_variant not in VALID_ROUTING_VARIANTS:
+        raise ValueError(f"Unknown routing_variant: {routing_variant}")
+    if routing_variant != "none" and feature_source == "oracle_feature":
+        raise ValueError("Automatic routing cannot use oracle_feature inputs")
+    if protocol_ablation not in VALID_PROTOCOL_ABLATIONS:
+        raise ValueError(f"Unknown protocol_ablation: {protocol_ablation}")
+    if route_guard_variant not in VALID_ROUTE_GUARD_VARIANTS:
+        raise ValueError(f"Unknown route_guard_variant: {route_guard_variant}")
 
     reasoning = {
         "prompt_variant": prompt_variant,
@@ -968,6 +1738,12 @@ def get_prediction_result(
         "mimo_retry_mode": mimo_retry_mode,
         "segmentation_variant": segmentation_variant,
         "evaluation_subset": evaluation_subset,
+        "routing_variant": routing_variant,
+        "feature_source": feature_source,
+        "protocol_ablation": protocol_ablation,
+        "route_guard_variant": route_guard_variant,
+        "frozen_route_used": frozen_route_assessment is not None,
+        "router_call_count": 0,
         "retry_count": 0,
         "raw_outputs": [],
         "failure_reason": None,
@@ -989,23 +1765,216 @@ def get_prediction_result(
         parsed_data, molmo_to_gt_map, points_with_ids = parse_points_with_id(id_file_path)
         visible_object_ids = [item[0] for item in parsed_data]
         reasoning["visible_object_ids"] = visible_object_ids
+        semantic_labels = {}
+        geometry_features = {}
+        if routing_variant == "predicted_geometry":
+            geometry_features = predict_geometry_from_molmo_points(
+                image_pil,
+                parsed_data,
+                predictor=getattr(langsam_actor, "sam", None),
+            )
+            reasoning["feature_source"] = "predicted"
+            reasoning["candidate_geometry_features"] = geometry_features
+        elif routing_variant == "none" and prompt_variant in ORACLE_FEATURE_PROMPTS:
+            semantic_labels = _load_semantic_labels_for_candidates(scene_number, parsed_data)
+            geometry_features = _load_geometry_features_for_candidates(scene_number, parsed_data)
+            reasoning["feature_source"] = "oracle_feature"
+            if semantic_labels:
+                reasoning["candidate_semantic_labels"] = semantic_labels
+            if geometry_features:
+                reasoning["candidate_geometry_features"] = geometry_features
 
         # GPT input text
         input_text = f"Grasp {text}"
-        system_prompt = get_reasoning_system_prompt(prompt_variant)
-        reasoning_input_text = _build_reasoning_input_text(input_text, parsed_data, prompt_variant)
+        active_prompt_variant = prompt_variant
+        route_assessment = None
+        target_evidence_packet = None
+        if frozen_route_assessment is not None:
+            route_assessment = dict(frozen_route_assessment)
+            if route_assessment.get("route_mode") not in {
+                "direct",
+                "target_first",
+                "blocker_first",
+            }:
+                raise ValueError("Frozen route assessment has invalid route_mode")
+        elif routing_variant == "count_only":
+            object_count = len(parsed_data)
+            route_mode = (
+                "direct"
+                if object_count < 4
+                else "target_first"
+                if object_count < 6
+                else "blocker_first"
+            )
+            route_assessment = {
+                "route_mode": route_mode,
+                "route_confidence": 1.0,
+                "target_object_id": None,
+                "target_label": text,
+                "ambiguity_evidence": [],
+                "blocker_evidence": [],
+            }
+        elif routing_variant in {"vlm_two_stage", "predicted_geometry"}:
+            router_text = format_router_input(
+                input_text,
+                parsed_data,
+                predicted_geometry=(
+                    geometry_features
+                    if routing_variant == "predicted_geometry"
+                    else None
+                ),
+            )
+            router_messages = _make_reasoning_messages(
+                evidence_router_prompt(),
+                router_text,
+                base64_image,
+            )
+            router_output = _call_reasoning_model(
+                router_messages,
+                model_name,
+                max_output_tokens,
+            )
+            reasoning["raw_outputs"].append(router_output)
+            reasoning["router_raw_output"] = router_output
+            reasoning["router_call_count"] = 1
+            try:
+                route_assessment = parse_route_assessment(
+                    router_output,
+                    visible_object_ids,
+                )
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+                route_assessment = {
+                    "route_mode": "target_first",
+                    "route_confidence": 0.0,
+                    "target_object_id": None,
+                    "target_label": text,
+                    "ambiguity_evidence": [f"router_parse_failure: {error}"],
+                    "blocker_evidence": [],
+                }
 
-        messages = _make_reasoning_messages(system_prompt, reasoning_input_text, base64_image)
-        output = _call_reasoning_model(messages, model_name, max_output_tokens)
-        reasoning["raw_outputs"].append(output)
-        result = process_grasping_result(output, text)
+        if route_assessment is not None:
+            uses_target_evidence_v2 = (
+                route_guard_variant == "target_evidence_v2"
+                or route_assessment.get("route_guard_variant")
+                == "target_evidence_v2"
+            )
+            if geometry_features and uses_target_evidence_v2:
+                target_evidence_packet = build_target_evidence_packet(
+                    target_id=route_assessment.get("target_object_id"),
+                    visible_object_ids=visible_object_ids,
+                    predicted_geometry=geometry_features,
+                )
+                reasoning["target_evidence_packet"] = (
+                    target_evidence_packet
+                )
+            reasoning["pre_guard_route_assessment"] = dict(route_assessment)
+            if (
+                frozen_route_assessment is None
+                and route_guard_variant == "conservative_v1"
+            ):
+                route_assessment = apply_conservative_route_guard(
+                    route_assessment,
+                    visible_object_ids=visible_object_ids,
+                    object_count=len(parsed_data),
+                    predicted_geometry=geometry_features,
+                )
+            elif (
+                frozen_route_assessment is None
+                and route_guard_variant == "target_evidence_v2"
+            ):
+                route_assessment = apply_target_evidence_route_guard(
+                    route_assessment,
+                    visible_object_ids=visible_object_ids,
+                    object_count=len(parsed_data),
+                    target_evidence_packet=target_evidence_packet
+                    or {
+                        "target_valid": False,
+                        "risk_candidates": [],
+                        "duplicate_mask_candidates": [],
+                        "evidence_reliability": (
+                            "missing_predicted_geometry"
+                        ),
+                    },
+                )
+            if (
+                protocol_ablation == "no_blocker_first"
+                and route_assessment["route_mode"] == "blocker_first"
+            ):
+                reasoning["pre_ablation_route_mode"] = "blocker_first"
+                route_assessment = {
+                    **route_assessment,
+                    "route_mode": "target_first",
+                }
+            reasoning.update(route_assessment)
+            if (
+                route_assessment["route_mode"] == "direct"
+                and route_assessment["target_object_id"] in visible_object_ids
+            ):
+                output = reasoning.get("router_raw_output", "")
+                result = {
+                    "selected_object_id": route_assessment["target_object_id"],
+                    "class_name": route_assessment["target_label"],
+                    "mask_query": route_assessment["target_label"],
+                }
+                system_prompt = evidence_router_prompt()
+            else:
+                active_prompt_variant = {
+                    "direct": "direct_target",
+                    "target_first": "target_first_evidence_gate_v9_json",
+                    "blocker_first": "hard_blocker_first_v10_json",
+                }[route_assessment["route_mode"]]
+                system_prompt = get_reasoning_system_prompt(active_prompt_variant)
+                reasoning_input_text = _build_reasoning_input_text(
+                    input_text,
+                    parsed_data,
+                    active_prompt_variant,
+                    semantic_labels=None,
+                    geometry_features=geometry_features,
+                    target_evidence_packet=target_evidence_packet,
+                )
+                messages = _make_reasoning_messages(
+                    system_prompt,
+                    reasoning_input_text,
+                    base64_image,
+                )
+                output = _call_reasoning_model(messages, model_name, max_output_tokens)
+                reasoning["raw_outputs"].append(output)
+                result = process_grasping_result(output, text)
+        else:
+            system_prompt = get_reasoning_system_prompt(active_prompt_variant)
+            reasoning_input_text = _build_reasoning_input_text(
+                input_text,
+                parsed_data,
+                active_prompt_variant,
+                semantic_labels=semantic_labels,
+                geometry_features=geometry_features,
+            )
+            messages = _make_reasoning_messages(system_prompt, reasoning_input_text, base64_image)
+            output = _call_reasoning_model(messages, model_name, max_output_tokens)
+            reasoning["raw_outputs"].append(output)
+            result = process_grasping_result(output, text)
+
+        prompt_variant = active_prompt_variant
+        reasoning["prompt_variant"] = active_prompt_variant
+
+        if route_assessment is not None:
+            mimo_retry_mode = _automatic_retry_mode(
+                route_assessment["route_mode"],
+                protocol_ablation,
+            )
+            reasoning["mimo_retry_mode"] = mimo_retry_mode
 
         needs_id_repair = _needs_id_repair(result, visible_object_ids)
+        if protocol_ablation == "no_id_repair" and needs_id_repair:
+            mimo_retry_mode = "none"
+            reasoning["mimo_retry_mode"] = mimo_retry_mode
         needs_hard_review = mimo_retry_mode == "hard_review" and _is_hard_subset(evaluation_subset)
         needs_target_review = mimo_retry_mode == "target_review" and _is_hard_subset(evaluation_subset)
         needs_roborefer_verify = mimo_retry_mode == "roborefer_verify" and _is_hard_subset(evaluation_subset)
         needs_candidate_verify = mimo_retry_mode == "candidate_verify"
         needs_first_grasp_verify = mimo_retry_mode == "first_grasp_verify"
+        needs_planner_consistency_repair = mimo_retry_mode == "planner_consistency_repair"
+        needs_geometry_consistency_repair = mimo_retry_mode == "geometry_consistency_repair"
         if (
             mimo_retry_mode
             in {
@@ -1015,6 +1984,8 @@ def get_prediction_result(
                 "roborefer_verify",
                 "candidate_verify",
                 "first_grasp_verify",
+                "planner_consistency_repair",
+                "geometry_consistency_repair",
             }
             and (
                 needs_id_repair
@@ -1023,21 +1994,70 @@ def get_prediction_result(
                 or needs_roborefer_verify
                 or needs_candidate_verify
                 or needs_first_grasp_verify
+                or needs_planner_consistency_repair
+                or needs_geometry_consistency_repair
             )
         ):
             initial_result = dict(result)
             initial_has_valid_id = not _needs_id_repair(initial_result, visible_object_ids)
-            if needs_first_grasp_verify and not needs_id_repair:
-                retry_reason = "first_grasp_verify"
-                retry_text = _build_first_grasp_verify_text(input_text, parsed_data, output)
+            if needs_geometry_consistency_repair and not needs_id_repair:
+                retry_reason = "geometry_consistency_repair"
+                retry_text = _build_geometry_consistency_repair_text(
+                    input_text,
+                    parsed_data,
+                    output,
+                    semantic_labels=semantic_labels,
+                    geometry_features=geometry_features,
+                    target_evidence_packet=target_evidence_packet,
+                )
+                retry_prompt_variant = (
+                    prompt_variant
+                    if prompt_variant in {
+                        "target_first_evidence_gate_v9_json",
+                        "hard_blocker_first_v10_json",
+                    }
+                    else "target_first_grasp_geometry_v8_json"
+                )
+                retry_system_prompt = get_reasoning_system_prompt(retry_prompt_variant)
+            elif needs_planner_consistency_repair and not needs_id_repair:
+                retry_reason = "planner_consistency_repair"
+                retry_text = _build_planner_consistency_repair_text(
+                    input_text,
+                    parsed_data,
+                    output,
+                    semantic_labels=semantic_labels,
+                )
                 if prompt_variant in {
-                    "candidate_grasp_json",
-                    "candidate_grasp_fewshot_json",
-                    "candidate_grasp_spatial_json",
+                    "target_first_grasp_planner_json",
+                    "target_first_grasp_planner_v7_json",
                 }:
                     retry_system_prompt = get_reasoning_system_prompt(prompt_variant)
                 else:
-                    retry_system_prompt = get_reasoning_system_prompt("candidate_grasp_json")
+                    retry_system_prompt = get_reasoning_system_prompt("target_first_grasp_planner_v7_json")
+            elif needs_first_grasp_verify and not needs_id_repair:
+                retry_reason = "first_grasp_verify"
+                if prompt_variant in {
+                    "target_first_grasp_planner_json",
+                    "target_first_grasp_planner_v7_json",
+                }:
+                    retry_text = _build_target_first_grasp_verify_text(
+                        input_text,
+                        parsed_data,
+                        output,
+                        semantic_labels=semantic_labels,
+                    )
+                    retry_system_prompt = get_reasoning_system_prompt(prompt_variant)
+                else:
+                    retry_text = _build_first_grasp_verify_text(input_text, parsed_data, output)
+                    if prompt_variant in {
+                        "candidate_grasp_json",
+                        "candidate_grasp_fewshot_json",
+                        "candidate_grasp_spatial_json",
+                        "candidate_grasp_semantic_json",
+                    }:
+                        retry_system_prompt = get_reasoning_system_prompt(prompt_variant)
+                    else:
+                        retry_system_prompt = get_reasoning_system_prompt("candidate_grasp_json")
             elif needs_candidate_verify and not needs_id_repair:
                 retry_reason = "candidate_verify"
                 retry_text = _build_candidate_verify_text(input_text, parsed_data, output)
@@ -1062,13 +2082,36 @@ def get_prediction_result(
                     "candidate_grasp_json",
                     "candidate_grasp_fewshot_json",
                     "candidate_grasp_spatial_json",
+                    "candidate_grasp_semantic_json",
+                    "target_first_grasp_planner_json",
+                    "target_first_grasp_planner_v7_json",
+                    "target_first_grasp_geometry_v8_json",
+                    "target_first_evidence_gate_v9_json",
+                    "hard_blocker_first_v10_json",
                 }:
                     if prompt_variant == "roborefer_json":
                         retry_text = _build_roborefer_id_repair_text(input_text, parsed_data, output)
                     elif prompt_variant in {
+                        "target_first_grasp_planner_json",
+                        "target_first_grasp_planner_v7_json",
+                        "target_first_grasp_geometry_v8_json",
+                        "target_first_evidence_gate_v9_json",
+                        "hard_blocker_first_v10_json",
+                    }:
+                        retry_text = _build_target_first_grasp_id_repair_text(
+                            input_text,
+                            parsed_data,
+                            output,
+                            semantic_labels=semantic_labels,
+                            target_evidence_packet=(
+                                target_evidence_packet
+                            ),
+                        )
+                    elif prompt_variant in {
                         "candidate_grasp_json",
                         "candidate_grasp_fewshot_json",
                         "candidate_grasp_spatial_json",
+                        "candidate_grasp_semantic_json",
                     }:
                         retry_text = _build_first_grasp_id_repair_text(input_text, parsed_data, output)
                     else:
@@ -1099,6 +2142,8 @@ def get_prediction_result(
                 "roborefer_verify",
                 "candidate_verify",
                 "first_grasp_verify",
+                "planner_consistency_repair",
+                "geometry_consistency_repair",
             }
             and selected_object_id is not None
             and selected_object_id not in visible_object_ids
@@ -1125,7 +2170,7 @@ def get_prediction_result(
             query_candidates = get_langsam_query_candidates(input2LangSAM, text)
             goal_mask, goal_bbox, segmentation_metadata = _predict_langsam_mask(
                 image_pil,
-                query_candidates if segmentation_variant == "point_retry" else query_candidates[:1],
+                _queries_for_segmentation(query_candidates, segmentation_variant),
                 None,
                 segmentation_variant,
             )
@@ -1137,7 +2182,7 @@ def get_prediction_result(
             query_candidates = get_langsam_query_candidates(goal, text)
             goal_mask, goal_bbox, segmentation_metadata = _predict_langsam_mask(
                 image_pil,
-                query_candidates if segmentation_variant == "point_retry" else query_candidates[:1],
+                _queries_for_segmentation(query_candidates, segmentation_variant),
                 goal_coor,
                 segmentation_variant,
             )

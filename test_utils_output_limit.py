@@ -22,7 +22,8 @@ def _install_import_stubs():
 
     data_utils_stub = types.ModuleType("models.FGC_graspnet.utils.data_utils")
     data_utils_stub.create_point_cloud_from_depth_image = lambda *args, **kwargs: None
-    sys.modules.setdefault("models", types.ModuleType("models"))
+    models_stub = sys.modules.setdefault("models", types.ModuleType("models"))
+    models_stub.__path__ = [str(Path(__file__).resolve().parent / "models")]
     sys.modules.setdefault("models.FGC_graspnet", types.ModuleType("models.FGC_graspnet"))
     sys.modules.setdefault("models.FGC_graspnet.utils", types.ModuleType("models.FGC_graspnet.utils"))
     sys.modules["models.FGC_graspnet.utils.data_utils"] = data_utils_stub
@@ -190,6 +191,137 @@ class UtilsOutputLimitTest(unittest.TestCase):
         self.assertIn("Color words may describe appearance", prompt)
         self.assertIn("first_grasp_object_id", prompt)
 
+    def test_target_first_grasp_planner_prompt_forces_two_stage_decision(self):
+        prompt = self.utils.get_reasoning_system_prompt("target_first_grasp_planner_json")
+
+        self.assertIn("target_resolution", prompt)
+        self.assertIn("first_grasp_planning", prompt)
+        self.assertIn("target_object_id", prompt)
+        self.assertIn("first_grasp_object_id", prompt)
+        self.assertIn("If target_object_id equals first_grasp_object_id", prompt)
+        self.assertIn("do not pick the requested target", prompt)
+        self.assertIn("direct blocker", prompt)
+        self.assertIn("label=", prompt)
+
+    def test_target_first_grasp_planner_v7_prompt_downweights_noisy_semantic_labels(self):
+        prompt = self.utils.get_reasoning_system_prompt("target_first_grasp_planner_v7_json")
+
+        self.assertIn("target_resolution", prompt)
+        self.assertIn("first_grasp_planning", prompt)
+        self.assertIn("semantic labels are weak hints", prompt)
+        self.assertIn("unknown labels", prompt)
+        self.assertIn("planner consistency", prompt)
+
+    def test_target_first_grasp_geometry_v8_prompt_requires_geometry_checks(self):
+        prompt = self.utils.get_reasoning_system_prompt("target_first_grasp_geometry_v8_json")
+
+        self.assertIn("target_resolution", prompt)
+        self.assertIn("first_grasp_planning", prompt)
+        self.assertIn("geometry evidence", prompt)
+        self.assertIn("bbox", prompt)
+        self.assertIn("bottom_edge_rank", prompt)
+        self.assertIn("same-category instance confusion", prompt)
+
+    def test_target_first_evidence_gate_v9_prompt_requires_relation_backed_blockers(self):
+        prompt = self.utils.get_reasoning_system_prompt("target_first_evidence_gate_v9_json")
+
+        self.assertIn("target_resolution", prompt)
+        self.assertIn("first_grasp_planning", prompt)
+        self.assertIn("blocker_evidence", prompt)
+        self.assertIn("Spatial words locate the target", prompt)
+        self.assertIn("direct relation evidence", prompt)
+        self.assertIn("default to grasping the target", prompt)
+
+    def test_target_first_evidence_gate_v9_input_adds_geometry_relations_and_reminder(self):
+        text = self.utils._build_reasoning_input_text(
+            "Grasp the pear under the other pear",
+            [(4, 619, 315, 2), (5, 830, 442, 1)],
+            "target_first_evidence_gate_v9_json",
+            semantic_labels={4: "pear", 5: "pear"},
+            geometry_features={
+                "candidates": {
+                    4: {
+                        "bbox": (600, 260, 900, 500),
+                        "area": 8100,
+                        "area_rank": 1,
+                        "bottom_edge_rank": 2,
+                        "center": (750, 380),
+                    },
+                    5: {
+                        "bbox": (760, 350, 1080, 620),
+                        "area": 7800,
+                        "area_rank": 2,
+                        "bottom_edge_rank": 1,
+                        "center": (920, 485),
+                    },
+                },
+                "relations": [
+                    {
+                        "source_id": 4,
+                        "target_id": 5,
+                        "relation": "overlaps",
+                        "overlap": 0.26,
+                        "vertical_order": "above",
+                    }
+                ],
+            },
+        )
+
+        self.assertIn("Candidate geometry relations", text)
+        self.assertIn("relation id=4->5", text)
+        self.assertIn("V9 evidence gate reminder", text)
+        self.assertIn("blocker requires overlap/near relation evidence", text)
+
+    def test_hard_blocker_first_v10_prompt_forbids_direct_target_selection(self):
+        prompt = self.utils.get_reasoning_system_prompt("hard_blocker_first_v10_json")
+
+        self.assertIn("hard-scene blocker-first", prompt)
+        self.assertIn('"should_grasp_target_directly":false', prompt)
+        self.assertIn("Never return the requested target as the first grasp", prompt)
+        self.assertIn("near alone is not sufficient", prompt)
+        self.assertIn("visible direct blocker", prompt)
+
+    def test_hard_blocker_first_v10_input_adds_geometry_and_blocker_reminder(self):
+        text = self.utils._build_reasoning_input_text(
+            "Grasp the pear under the other pear",
+            [(4, 619, 315, 2), (5, 830, 442, 1)],
+            "hard_blocker_first_v10_json",
+            semantic_labels={4: "pear", 5: "pear"},
+            geometry_features={
+                "candidates": {
+                    4: {
+                        "bbox": (600, 260, 900, 500),
+                        "area": 8100,
+                        "area_rank": 1,
+                        "bottom_edge_rank": 2,
+                        "center": (750, 380),
+                    },
+                    5: {
+                        "bbox": (760, 350, 1080, 620),
+                        "area": 7800,
+                        "area_rank": 2,
+                        "bottom_edge_rank": 1,
+                        "center": (920, 485),
+                    },
+                },
+                "relations": [
+                    {
+                        "source_id": 4,
+                        "target_id": 5,
+                        "relation": "overlaps",
+                        "overlap": 0.26,
+                        "vertical_order": "above",
+                    }
+                ],
+            },
+        )
+
+        self.assertIn("Candidate geometry relations", text)
+        self.assertIn("relation id=4->5", text)
+        self.assertIn("V10 hard blocker-first reminder", text)
+        self.assertIn("never choose the requested target directly", text)
+        self.assertIn("near alone cannot prove blocking", text)
+
     def test_candidate_grasp_semantic_input_adds_labels_without_gt_ids(self):
         text = self.utils._format_visible_object_candidates(
             [(1, 10, 10, 6), (2, 90, 90, 1)],
@@ -203,6 +335,80 @@ class UtilsOutputLimitTest(unittest.TestCase):
         self.assertIn("region=bottom-right", text)
         self.assertNotIn("GT_ID", text)
         self.assertNotIn("gt_id", text)
+
+    def test_target_first_grasp_planner_input_uses_spatial_labels_and_reminders(self):
+        text = self.utils._build_reasoning_input_text(
+            "Grasp the strawberry under the white box",
+            [(2, 10, 10, 7), (5, 90, 90, 1)],
+            "target_first_grasp_planner_json",
+            semantic_labels={2: "box_7", 5: "strawberry"},
+        )
+
+        self.assertIn("Visible object candidates", text)
+        self.assertIn("id=2, label=box_7, point=(10, 10)", text)
+        self.assertIn("id=5, label=strawberry, point=(90, 90)", text)
+        self.assertIn("First-grasp rule reminder", text)
+        self.assertIn("Spatial rank reminder", text)
+        self.assertIn("V6 planner reminder", text)
+        self.assertNotIn("GT_ID", text)
+        self.assertNotIn("gt_id", text)
+
+    def test_target_first_grasp_planner_v7_input_hides_semantic_placeholders(self):
+        text = self.utils._build_reasoning_input_text(
+            "Grasp the orange nearest to the image bottom",
+            [(1, 10, 10, 6), (2, 90, 90, 1)],
+            "target_first_grasp_planner_v7_json",
+            semantic_labels={1: "semantic_62", 2: "power_drill"},
+        )
+
+        self.assertIn("id=1, label=unknown, point=(10, 10)", text)
+        self.assertIn("id=2, label=power_drill, point=(90, 90)", text)
+        self.assertIn("V7 planner reminder", text)
+        self.assertNotIn("semantic_62", text)
+
+    def test_target_first_grasp_geometry_v8_input_adds_bbox_and_relations(self):
+        text = self.utils._build_reasoning_input_text(
+            "Grasp the pear under the other pear",
+            [(4, 619, 315, 2), (5, 830, 442, 1)],
+            "target_first_grasp_geometry_v8_json",
+            semantic_labels={4: "peach", 5: "peach"},
+            geometry_features={
+                "candidates": {
+                    4: {
+                        "bbox": (600, 260, 900, 500),
+                        "area": 8100,
+                        "area_rank": 1,
+                        "bottom_edge_rank": 2,
+                        "center": (750, 380),
+                    },
+                    5: {
+                        "bbox": (760, 350, 1080, 620),
+                        "area": 7800,
+                        "area_rank": 2,
+                        "bottom_edge_rank": 1,
+                        "center": (920, 485),
+                    },
+                },
+                "relations": [
+                    {
+                        "source_id": 4,
+                        "target_id": 5,
+                        "relation": "overlaps",
+                        "overlap": 0.26,
+                        "vertical_order": "above",
+                    }
+                ],
+            },
+        )
+
+        self.assertIn("id=4, label=peach, point=(619, 315)", text)
+        self.assertIn("bbox=(600,260,900,500)", text)
+        self.assertIn("area_rank=1/2", text)
+        self.assertIn("bottom_edge_rank=1/2", text)
+        self.assertIn("Candidate geometry relations", text)
+        self.assertIn("relation id=4->5", text)
+        self.assertIn("overlap=0.26", text)
+        self.assertIn("V8 geometry reminder", text)
 
     def test_direct_target_prompt_avoids_obstacle_removal_for_easy_scenes(self):
         prompt = self.utils.get_reasoning_system_prompt("direct_target")
@@ -288,6 +494,40 @@ class UtilsOutputLimitTest(unittest.TestCase):
                         "mask_query": "white box",
                         "role": "direct_obstructor",
                         "confidence": 0.71,
+                    },
+                },
+            },
+        )
+
+    def test_process_grasping_result_accepts_target_first_grasp_planner_json(self):
+        output = (
+            '{"target_resolution":{"target_object_id":5,"target_label":"strawberry",'
+            '"target_visibility":"visible_but_blocked"},'
+            '"first_grasp_planning":{"should_grasp_target_directly":false,'
+            '"blocking_candidates":[{"object_id":2,"label":"box_7","priority":1}],'
+            '"first_grasp_object_id":2,"first_grasp_label":"white box",'
+            '"mask_query":"white box","decision_rule":"remove_direct_blocker"}}'
+        )
+
+        self.assertEqual(
+            self.utils.process_grasping_result(output, "the strawberry under a white box"),
+            {
+                "selected_object_id": 2,
+                "class_name": "white box",
+                "mask_query": "white box",
+                "reasoning_json": {
+                    "target_resolution": {
+                        "target_object_id": 5,
+                        "target_label": "strawberry",
+                        "target_visibility": "visible_but_blocked",
+                    },
+                    "first_grasp_planning": {
+                        "should_grasp_target_directly": False,
+                        "blocking_candidates": [{"object_id": 2, "label": "box_7", "priority": 1}],
+                        "first_grasp_object_id": 2,
+                        "first_grasp_label": "white box",
+                        "mask_query": "white box",
+                        "decision_rule": "remove_direct_blocker",
                     },
                 },
             },
@@ -708,6 +948,175 @@ class UtilsOutputLimitTest(unittest.TestCase):
         verify_text = calls[1]["messages"][1]["content"][0]["text"]
         self.assertIn("first visible object to grasp", verify_text)
         self.assertIn("not merely the requested target", verify_text)
+
+    def test_get_prediction_result_v6_verify_preserves_v6_system_prompt(self):
+        fake_client = _FakeClient(
+            outputs=[
+                (
+                    '{"target_resolution":{"target_object_id":5,"target_label":"strawberry",'
+                    '"target_visibility":"visible_but_blocked"},'
+                    '"first_grasp_planning":{"should_grasp_target_directly":true,'
+                    '"first_grasp_object_id":5,"first_grasp_label":"red strawberry",'
+                    '"mask_query":"red strawberry","decision_rule":"pick_target"}}'
+                ),
+                (
+                    '{"target_resolution":{"target_object_id":5,"target_label":"strawberry",'
+                    '"target_visibility":"visible_but_blocked"},'
+                    '"first_grasp_planning":{"should_grasp_target_directly":false,'
+                    '"blocking_candidates":[{"object_id":2,"label":"box_7","priority":1}],'
+                    '"first_grasp_object_id":2,"first_grasp_label":"white box",'
+                    '"mask_query":"white box","decision_rule":"remove_direct_blocker"}}'
+                ),
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scene_dir = Path(tmpdir)
+            (scene_dir / "10_id.txt").write_text("id x y gt\n2 2 3 7\n5 5 6 1\n")
+
+            with patch.object(self.utils, "client", fake_client), \
+                patch.object(self.utils, "load_image_as_base64", return_value="image-bytes"), \
+                patch.object(self.utils, "get_goal_mask_with_index", return_value=("mask", 0)), \
+                patch.object(
+                    self.utils.langsam_actor,
+                    "predict",
+                    return_value=(["mask"], [_FakeBox()], ["white box"], [1.0]),
+                ):
+                result = self.utils.get_prediction_result(
+                    image=object(),
+                    path=scene_dir,
+                    scene_number=10,
+                    text="the strawberry under a white box",
+                    return_metadata=True,
+                    prompt_variant="target_first_grasp_planner_json",
+                    model_name="mimo-v2.5",
+                    max_output_tokens=1024,
+                    mimo_retry_mode="first_grasp_verify",
+                    evaluation_subset="hard_no_ambi",
+                )
+
+        calls = fake_client.chat.completions.calls
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(result["reasoning"]["selected_object_id"], 2)
+        self.assertEqual(result["reasoning"]["mask_query"], "white box")
+        self.assertEqual(result["reasoning"]["retry_reason"], "first_grasp_verify")
+        first_prompt = calls[0]["messages"][0]["content"]
+        retry_prompt = calls[1]["messages"][0]["content"]
+        self.assertIn("target_resolution", first_prompt)
+        self.assertIn("target_resolution", retry_prompt)
+        verify_text = calls[1]["messages"][1]["content"][0]["text"]
+        self.assertIn("Previous target-first grasp planner JSON", verify_text)
+        self.assertIn("target_object_id equals first_grasp_object_id", verify_text)
+
+    def test_get_prediction_result_v7_uses_planner_consistency_repair(self):
+        fake_client = _FakeClient(
+            outputs=[
+                (
+                    '{"target_resolution":{"target_object_id":5,"target_label":"strawberry",'
+                    '"target_visibility":"visible_but_blocked"},'
+                    '"first_grasp_planning":{"should_grasp_target_directly":true,'
+                    '"first_grasp_object_id":5,"first_grasp_label":"red strawberry",'
+                    '"mask_query":"red strawberry","decision_rule":"pick_target"}}'
+                ),
+                (
+                    '{"target_resolution":{"target_object_id":5,"target_label":"strawberry",'
+                    '"target_visibility":"visible_but_blocked"},'
+                    '"first_grasp_planning":{"should_grasp_target_directly":false,'
+                    '"blocking_candidates":[{"object_id":2,"label":"box_7","priority":1}],'
+                    '"first_grasp_object_id":2,"first_grasp_label":"white box",'
+                    '"mask_query":"white box","decision_rule":"remove_direct_blocker"}}'
+                ),
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scene_dir = Path(tmpdir)
+            (scene_dir / "10_id.txt").write_text("id x y gt\n2 2 3 7\n5 5 6 1\n")
+
+            with patch.object(self.utils, "client", fake_client), \
+                patch.object(self.utils, "load_image_as_base64", return_value="image-bytes"), \
+                patch.object(self.utils, "get_goal_mask_with_index", return_value=("mask", 0)), \
+                patch.object(
+                    self.utils.langsam_actor,
+                    "predict",
+                    return_value=(["mask"], [_FakeBox()], ["white box"], [1.0]),
+                ):
+                result = self.utils.get_prediction_result(
+                    image=object(),
+                    path=scene_dir,
+                    scene_number=10,
+                    text="the strawberry under a white box",
+                    return_metadata=True,
+                    prompt_variant="target_first_grasp_planner_v7_json",
+                    model_name="mimo-v2.5",
+                    max_output_tokens=1024,
+                    mimo_retry_mode="planner_consistency_repair",
+                    evaluation_subset="hard_no_ambi",
+                )
+
+        calls = fake_client.chat.completions.calls
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(result["reasoning"]["selected_object_id"], 2)
+        self.assertEqual(result["reasoning"]["retry_reason"], "planner_consistency_repair")
+        self.assertIn("planner consistency repair", calls[1]["messages"][1]["content"][0]["text"])
+        self.assertIn("target_visibility is blocked", calls[1]["messages"][1]["content"][0]["text"])
+        self.assertIn("target_first_grasp_planner_v7_json", calls[1]["messages"][1]["content"][0]["text"])
+
+    def test_get_prediction_result_v8_uses_geometry_consistency_repair(self):
+        fake_client = _FakeClient(
+            outputs=[
+                (
+                    '{"target_resolution":{"target_object_id":4,"target_label":"orange",'
+                    '"target_visibility":"free_visible"},'
+                    '"first_grasp_planning":{"should_grasp_target_directly":true,'
+                    '"first_grasp_object_id":4,"first_grasp_label":"orange",'
+                    '"mask_query":"orange fruit","decision_rule":"pick_target"}}'
+                ),
+                (
+                    '{"target_resolution":{"target_object_id":5,"target_label":"orange",'
+                    '"target_visibility":"visible_but_blocked"},'
+                    '"first_grasp_planning":{"should_grasp_target_directly":false,'
+                    '"blocking_candidates":[{"object_id":5,"label":"orange","priority":1}],'
+                    '"first_grasp_object_id":5,"first_grasp_label":"orange",'
+                    '"mask_query":"orange fruit","decision_rule":"pick_target"}}'
+                ),
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scene_dir = Path(tmpdir)
+            (scene_dir / "10_id.txt").write_text("id x y gt\n4 670 964 1\n5 677 341 3\n")
+
+            with patch.object(self.utils, "client", fake_client), \
+                patch.object(self.utils, "load_image_as_base64", return_value="image-bytes"), \
+                patch.object(self.utils, "get_goal_mask_with_index", return_value=("mask", 0)), \
+                patch.object(
+                    self.utils.langsam_actor,
+                    "predict",
+                    return_value=(["mask"], [_FakeBox()], ["orange"], [1.0]),
+                ):
+                result = self.utils.get_prediction_result(
+                    image=object(),
+                    path=scene_dir,
+                    scene_number=10,
+                    text="the orange nearest to the image bottom",
+                    return_metadata=True,
+                    prompt_variant="target_first_grasp_geometry_v8_json",
+                    model_name="mimo-v2.5",
+                    max_output_tokens=1024,
+                    mimo_retry_mode="geometry_consistency_repair",
+                    evaluation_subset="hard_yes_ambi",
+                )
+
+        calls = fake_client.chat.completions.calls
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(result["reasoning"]["selected_object_id"], 5)
+        self.assertEqual(result["reasoning"]["retry_reason"], "geometry_consistency_repair")
+        repair_text = calls[1]["messages"][1]["content"][0]["text"]
+        self.assertIn("geometry consistency repair", repair_text)
+        self.assertIn("bottom-edge rank", repair_text)
+        self.assertIn("same-category instance confusion", repair_text)
+        self.assertIn("target_first_grasp_geometry_v8_json", repair_text)
 
     def test_get_prediction_result_baseline_does_not_retry_invalid_visible_id(self):
         fake_client = _FakeClient(outputs=["[9, red block]", "[3, blue screwdriver]"])

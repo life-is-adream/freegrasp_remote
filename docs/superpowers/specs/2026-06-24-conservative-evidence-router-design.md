@@ -193,15 +193,15 @@ promote a route to `blocker_first`.
 
 ### Clutter Prior
 
-Object count is a one-way safety prior:
+Object count remains audit metadata but is not a hard direct-route threshold.
+Offline Stage 1 analysis showed that easy, medium, and hard scenes have heavily
+overlapping object-count distributions, so a four-object cutoff suppressed
+98.8% of easy direct decisions. Object count never directly promotes
+`blocker_first`.
 
-- Fewer than four visible objects does not automatically permit `direct`.
-- Four or more visible objects makes `direct` ineligible in the first pilot.
-- Object count never directly promotes `blocker_first`.
-
-This rule is intentionally stricter than the Stage 1 router. It targets the
-observed medium/hard direct-route collapse. The pilot will determine whether
-the threshold should later be relaxed.
+The first pilot instead rejects `direct` when predicted target-related overlap
+exceeds 0.15. On frozen S4 outputs this retains 69.8% of easy direct decisions
+while suppressing 56.3% of medium/hard direct decisions.
 
 ### Blocker-First Requirement
 
@@ -245,7 +245,8 @@ The run manifest must add:
 
 - `route_guard_variant: conservative_v1`
 - `direct_confidence_threshold: 0.90`
-- `direct_max_object_count: 3`
+- `direct_max_object_count: null`
+- `target_overlap_threshold: 0.15`
 - `guard_code_version`
 
 The existing cache hash, model name, token limit, git commit, and dirty

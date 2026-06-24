@@ -252,6 +252,86 @@ class EvaluateMimoClientTest(unittest.TestCase):
         self.assertEqual(args.mimo_retry_mode, "first_grasp_verify")
         self.assertEqual(args.subset_policy, "candidate_grasp_semantic_v5")
 
+    def test_parse_args_accepts_target_first_grasp_planner_hooks(self):
+        args = evaluate_mimo.parse_args(
+            [
+                "--prompt-variant",
+                "target_first_grasp_planner_json",
+                "--mimo-retry-mode",
+                "first_grasp_verify",
+                "--subset-policy",
+                "target_first_grasp_planner_v6",
+            ]
+        )
+
+        self.assertEqual(args.prompt_variant, "target_first_grasp_planner_json")
+        self.assertEqual(args.mimo_retry_mode, "first_grasp_verify")
+        self.assertEqual(args.subset_policy, "target_first_grasp_planner_v6")
+
+    def test_parse_args_accepts_target_first_grasp_planner_v7_hooks(self):
+        args = evaluate_mimo.parse_args(
+            [
+                "--prompt-variant",
+                "target_first_grasp_planner_v7_json",
+                "--mimo-retry-mode",
+                "planner_consistency_repair",
+                "--subset-policy",
+                "target_first_grasp_planner_v7",
+            ]
+        )
+
+        self.assertEqual(args.prompt_variant, "target_first_grasp_planner_v7_json")
+        self.assertEqual(args.mimo_retry_mode, "planner_consistency_repair")
+        self.assertEqual(args.subset_policy, "target_first_grasp_planner_v7")
+
+    def test_parse_args_accepts_target_first_grasp_geometry_v8_hooks(self):
+        args = evaluate_mimo.parse_args(
+            [
+                "--prompt-variant",
+                "target_first_grasp_geometry_v8_json",
+                "--mimo-retry-mode",
+                "geometry_consistency_repair",
+                "--subset-policy",
+                "target_first_grasp_geometry_v8",
+            ]
+        )
+
+        self.assertEqual(args.prompt_variant, "target_first_grasp_geometry_v8_json")
+        self.assertEqual(args.mimo_retry_mode, "geometry_consistency_repair")
+        self.assertEqual(args.subset_policy, "target_first_grasp_geometry_v8")
+
+    def test_parse_args_accepts_target_first_evidence_gate_v9_hooks(self):
+        args = evaluate_mimo.parse_args(
+            [
+                "--prompt-variant",
+                "target_first_evidence_gate_v9_json",
+                "--mimo-retry-mode",
+                "geometry_consistency_repair",
+                "--subset-policy",
+                "target_first_evidence_gate_v9",
+            ]
+        )
+
+        self.assertEqual(args.prompt_variant, "target_first_evidence_gate_v9_json")
+        self.assertEqual(args.mimo_retry_mode, "geometry_consistency_repair")
+        self.assertEqual(args.subset_policy, "target_first_evidence_gate_v9")
+
+    def test_parse_args_accepts_hard_blocker_first_v10_hooks(self):
+        args = evaluate_mimo.parse_args(
+            [
+                "--prompt-variant",
+                "hard_blocker_first_v10_json",
+                "--mimo-retry-mode",
+                "id_repair",
+                "--subset-policy",
+                "hard_blocker_first_v10",
+            ]
+        )
+
+        self.assertEqual(args.prompt_variant, "hard_blocker_first_v10_json")
+        self.assertEqual(args.mimo_retry_mode, "id_repair")
+        self.assertEqual(args.subset_policy, "hard_blocker_first_v10")
+
 
 if __name__ == "__main__":
     unittest.main()

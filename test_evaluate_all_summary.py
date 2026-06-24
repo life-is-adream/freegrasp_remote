@@ -595,6 +595,243 @@ class EvaluateAllSummaryTest(unittest.TestCase):
                 "candidate_grasp_semantic_json",
             )
 
+    def test_target_first_grasp_planner_policy_uses_v6_for_medium_and_hard(self) -> None:
+        subset_scores = {
+            "easy_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "easy_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+        }
+        evaluate_common_stub = types.ModuleType("evaluate_common")
+        calls = {}
+
+        def fake_evaluate_subset(subset_name, **kwargs):
+            calls[subset_name] = kwargs
+            return subset_scores[subset_name]
+
+        evaluate_common_stub.evaluate_subset = fake_evaluate_subset
+        evaluate_common_stub.MOLMO_OUTPUT_DIR = "data/output/molmo_output"
+        sys.modules["evaluate_common"] = evaluate_common_stub
+        sys.modules.pop("evaluate_all", None)
+        evaluate_all = importlib.import_module("evaluate_all")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir)
+            evaluate_all.evaluate_pipeline(
+                model_name="mimo-v2.5",
+                max_output_tokens=1024,
+                subset_policy="target_first_grasp_planner_v6",
+                reuse_molmo=True,
+                resume=False,
+                run_dir=run_dir,
+            )
+
+            self.assertEqual(calls["easy_no_ambi"]["prompt_variant"], "direct_target")
+            self.assertEqual(calls["easy_no_ambi"]["mimo_retry_mode"], "id_repair")
+            self.assertEqual(calls["medium_no_ambi"]["prompt_variant"], "target_first_grasp_planner_json")
+            self.assertEqual(calls["medium_no_ambi"]["mimo_retry_mode"], "first_grasp_verify")
+            self.assertEqual(calls["medium_yes_ambi"]["prompt_variant"], "target_first_grasp_planner_json")
+            self.assertEqual(calls["hard_no_ambi"]["prompt_variant"], "target_first_grasp_planner_json")
+            self.assertEqual(calls["hard_no_ambi"]["mimo_retry_mode"], "first_grasp_verify")
+            self.assertEqual(calls["hard_yes_ambi"]["prompt_variant"], "target_first_grasp_planner_json")
+            self.assertEqual(calls["hard_yes_ambi"]["mimo_retry_mode"], "first_grasp_verify")
+
+            summary = json.loads((run_dir / "summary.json").read_text())
+            self.assertEqual(summary["subset_policy"], "target_first_grasp_planner_v6")
+            self.assertEqual(
+                summary["subset_configs"]["hard_yes_ambi"]["prompt_variant"],
+                "target_first_grasp_planner_json",
+            )
+
+    def test_target_first_grasp_planner_policy_uses_v7_for_medium_and_hard(self) -> None:
+        subset_scores = {
+            "easy_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "easy_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+        }
+        evaluate_common_stub = types.ModuleType("evaluate_common")
+        calls = {}
+
+        def fake_evaluate_subset(subset_name, **kwargs):
+            calls[subset_name] = kwargs
+            return subset_scores[subset_name]
+
+        evaluate_common_stub.evaluate_subset = fake_evaluate_subset
+        evaluate_common_stub.MOLMO_OUTPUT_DIR = "data/output/molmo_output"
+        sys.modules["evaluate_common"] = evaluate_common_stub
+        sys.modules.pop("evaluate_all", None)
+        evaluate_all = importlib.import_module("evaluate_all")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir)
+            evaluate_all.evaluate_pipeline(
+                model_name="mimo-v2.5",
+                max_output_tokens=1024,
+                subset_policy="target_first_grasp_planner_v7",
+                reuse_molmo=True,
+                resume=False,
+                run_dir=run_dir,
+            )
+
+            self.assertEqual(calls["easy_no_ambi"]["prompt_variant"], "direct_target")
+            self.assertEqual(calls["easy_no_ambi"]["mimo_retry_mode"], "id_repair")
+            self.assertEqual(calls["medium_no_ambi"]["prompt_variant"], "target_first_grasp_planner_v7_json")
+            self.assertEqual(calls["medium_no_ambi"]["mimo_retry_mode"], "planner_consistency_repair")
+            self.assertEqual(calls["medium_yes_ambi"]["prompt_variant"], "target_first_grasp_planner_v7_json")
+            self.assertEqual(calls["hard_no_ambi"]["prompt_variant"], "target_first_grasp_planner_v7_json")
+            self.assertEqual(calls["hard_no_ambi"]["mimo_retry_mode"], "planner_consistency_repair")
+            self.assertEqual(calls["hard_yes_ambi"]["prompt_variant"], "target_first_grasp_planner_v7_json")
+            self.assertEqual(calls["hard_yes_ambi"]["mimo_retry_mode"], "planner_consistency_repair")
+
+            summary = json.loads((run_dir / "summary.json").read_text())
+            self.assertEqual(summary["subset_policy"], "target_first_grasp_planner_v7")
+            self.assertEqual(
+                summary["subset_configs"]["hard_yes_ambi"]["prompt_variant"],
+                "target_first_grasp_planner_v7_json",
+            )
+
+    def test_target_first_grasp_geometry_policy_uses_v8_for_medium_and_hard(self) -> None:
+        subset_scores = {
+            "easy_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "easy_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+        }
+        evaluate_common_stub = types.ModuleType("evaluate_common")
+        calls = {}
+
+        def fake_evaluate_subset(subset_name, **kwargs):
+            calls[subset_name] = kwargs
+            return subset_scores[subset_name]
+
+        evaluate_common_stub.evaluate_subset = fake_evaluate_subset
+        evaluate_common_stub.MOLMO_OUTPUT_DIR = "data/output/molmo_output"
+        sys.modules["evaluate_common"] = evaluate_common_stub
+        sys.modules.pop("evaluate_all", None)
+        evaluate_all = importlib.import_module("evaluate_all")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir)
+            evaluate_all.evaluate_pipeline(
+                model_name="mimo-v2.5",
+                max_output_tokens=1024,
+                subset_policy="target_first_grasp_geometry_v8",
+                reuse_molmo=True,
+                resume=False,
+                run_dir=run_dir,
+            )
+
+            self.assertEqual(calls["easy_no_ambi"]["prompt_variant"], "direct_target")
+            self.assertEqual(calls["easy_no_ambi"]["mimo_retry_mode"], "id_repair")
+            self.assertEqual(calls["medium_no_ambi"]["prompt_variant"], "target_first_grasp_geometry_v8_json")
+            self.assertEqual(calls["medium_no_ambi"]["mimo_retry_mode"], "geometry_consistency_repair")
+            self.assertEqual(calls["medium_yes_ambi"]["prompt_variant"], "target_first_grasp_geometry_v8_json")
+            self.assertEqual(calls["hard_no_ambi"]["prompt_variant"], "target_first_grasp_geometry_v8_json")
+            self.assertEqual(calls["hard_no_ambi"]["mimo_retry_mode"], "geometry_consistency_repair")
+            self.assertEqual(calls["hard_yes_ambi"]["prompt_variant"], "target_first_grasp_geometry_v8_json")
+            self.assertEqual(calls["hard_yes_ambi"]["mimo_retry_mode"], "geometry_consistency_repair")
+
+            summary = json.loads((run_dir / "summary.json").read_text())
+            self.assertEqual(summary["subset_policy"], "target_first_grasp_geometry_v8")
+            self.assertEqual(
+                summary["subset_configs"]["hard_yes_ambi"]["prompt_variant"],
+                "target_first_grasp_geometry_v8_json",
+            )
+
+    def test_target_first_evidence_gate_v9_policy_uses_id_repair_for_hard(self) -> None:
+        subset_scores = {
+            "easy_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "easy_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+        }
+        evaluate_common_stub = types.ModuleType("evaluate_common")
+        calls = {}
+
+        def fake_evaluate_subset(subset_name, **kwargs):
+            calls[subset_name] = kwargs
+            return subset_scores[subset_name]
+
+        evaluate_common_stub.evaluate_subset = fake_evaluate_subset
+        evaluate_common_stub.MOLMO_OUTPUT_DIR = "data/output/molmo_output"
+        sys.modules["evaluate_common"] = evaluate_common_stub
+        sys.modules.pop("evaluate_all", None)
+        evaluate_all = importlib.import_module("evaluate_all")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir)
+            evaluate_all.evaluate_pipeline(
+                model_name="mimo-v2.5",
+                max_output_tokens=1024,
+                subset_policy="target_first_evidence_gate_v9",
+                reuse_molmo=True,
+                resume=False,
+                run_dir=run_dir,
+            )
+
+            self.assertEqual(calls["easy_no_ambi"]["prompt_variant"], "direct_target")
+            self.assertEqual(calls["easy_no_ambi"]["mimo_retry_mode"], "id_repair")
+            self.assertEqual(calls["medium_no_ambi"]["prompt_variant"], "target_first_evidence_gate_v9_json")
+            self.assertEqual(calls["medium_no_ambi"]["mimo_retry_mode"], "geometry_consistency_repair")
+            self.assertEqual(calls["hard_no_ambi"]["prompt_variant"], "target_first_evidence_gate_v9_json")
+            self.assertEqual(calls["hard_no_ambi"]["mimo_retry_mode"], "id_repair")
+            self.assertEqual(calls["hard_yes_ambi"]["prompt_variant"], "target_first_evidence_gate_v9_json")
+            self.assertEqual(calls["hard_yes_ambi"]["segmentation_variant"], "point_retry")
+
+            summary = json.loads((run_dir / "summary.json").read_text())
+            self.assertEqual(summary["subset_policy"], "target_first_evidence_gate_v9")
+            self.assertEqual(
+                summary["subset_configs"]["hard_yes_ambi"]["prompt_variant"],
+                "target_first_evidence_gate_v9_json",
+            )
+
+    def test_hard_blocker_first_v10_policy_changes_only_hard_prompt(self) -> None:
+        evaluate_common_stub = types.ModuleType("evaluate_common")
+        evaluate_common_stub.evaluate_subset = lambda *_args, **_kwargs: {"rsr": 0.0, "ssr": 0.0}
+        evaluate_common_stub.MOLMO_OUTPUT_DIR = "data/output/molmo_output"
+        sys.modules["evaluate_common"] = evaluate_common_stub
+        sys.modules.pop("evaluate_all", None)
+        evaluate_all = importlib.import_module("evaluate_all")
+
+        easy_config = evaluate_all._subset_config(
+            "easy_no_ambi",
+            "legacy",
+            "none",
+            "baseline",
+            "hard_blocker_first_v10",
+        )
+        medium_config = evaluate_all._subset_config(
+            "medium_no_ambi",
+            "legacy",
+            "none",
+            "baseline",
+            "hard_blocker_first_v10",
+        )
+        hard_config = evaluate_all._subset_config(
+            "hard_yes_ambi",
+            "legacy",
+            "none",
+            "baseline",
+            "hard_blocker_first_v10",
+        )
+
+        self.assertEqual(easy_config["prompt_variant"], "direct_target")
+        self.assertEqual(easy_config["mimo_retry_mode"], "id_repair")
+        self.assertEqual(medium_config["prompt_variant"], "target_first_evidence_gate_v9_json")
+        self.assertEqual(medium_config["mimo_retry_mode"], "geometry_consistency_repair")
+        self.assertEqual(hard_config["prompt_variant"], "hard_blocker_first_v10_json")
+        self.assertEqual(hard_config["mimo_retry_mode"], "id_repair")
+        self.assertEqual(hard_config["segmentation_variant"], "point_retry")
+
 
 if __name__ == "__main__":
     unittest.main()

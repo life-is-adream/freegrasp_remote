@@ -57,6 +57,69 @@ class EvaluateMimoFullProtocolTest(unittest.TestCase):
         self.assertEqual(summary["aggregate"]["easy_no_ambi"]["n"], 3)
         self.assertEqual(summary["molmo_cache_policy"], "reuse_existing")
 
+    def test_summary_records_provenance_and_calls(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_root = Path(tmpdir)
+            split_dir = run_root / "split_0"
+            split_dir.mkdir()
+            (split_dir / "out_easy_no_ambi.json").write_text(
+                json.dumps([[1, 1, "a", 1, 1]])
+            )
+            (split_dir / "details_easy_no_ambi.json").write_text(
+                json.dumps(
+                    [
+                        {
+                            "reasoning": {
+                                "raw_outputs": ["router", "answer", "repair"],
+                                "router_call_count": 1,
+                                "retry_count": 1,
+                            }
+                        }
+                    ]
+                )
+            )
+
+            summary = evaluate_mimo_full_protocol.aggregate_run_results(
+                run_root=run_root,
+                splits=["0"],
+                subsets=["easy_no_ambi"],
+                model_name="mimo-v2.5",
+                max_output_tokens=1024,
+                subset_policy="automatic_evidence_v1",
+                molmo_cache_policy="reuse_existing",
+                scores_by_split={"0": {}},
+                manifest={
+                    "manifest_id": "manifest-1",
+                    "cache_sha256": "cache-1",
+                    "feature_source": "predicted",
+                    "routing_variant": "predicted_geometry",
+                    "uses_gt_features": False,
+                    "uses_benchmark_difficulty": False,
+                    "route_guard_variant": "target_evidence_v2",
+                    "target_evidence_max_candidates": 3,
+                    "duplicate_mask_iou_threshold": 0.85,
+                    "duplicate_bbox_overlap_threshold": 0.95,
+                    "guard_code_version": "target-evidence-v2",
+                },
+            )
+
+        self.assertEqual(summary["manifest_id"], "manifest-1")
+        self.assertEqual(summary["cache_sha256"], "cache-1")
+        self.assertEqual(summary["reasoning_calls"], 3)
+        self.assertEqual(summary["router_calls"], 1)
+        self.assertEqual(summary["repair_calls"], 1)
+        self.assertEqual(summary["calls_per_sample"], 3.0)
+        self.assertEqual(
+            summary["route_guard_variant"],
+            "target_evidence_v2",
+        )
+        self.assertEqual(summary["target_evidence_max_candidates"], 3)
+        self.assertEqual(summary["duplicate_mask_iou_threshold"], 0.85)
+        self.assertEqual(
+            summary["duplicate_bbox_overlap_threshold"],
+            0.95,
+        )
+
     def test_fresh_molmo_regenerates_once_then_reuses_for_all_subsets(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)

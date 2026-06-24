@@ -251,7 +251,8 @@ Add:
 ```python
 CONSERVATIVE_GUARD_VERSION = "conservative-v1"
 DIRECT_CONFIDENCE_THRESHOLD = 0.90
-DIRECT_MAX_OBJECT_COUNT = 3
+DIRECT_MAX_OBJECT_COUNT = None
+TARGET_OVERLAP_THRESHOLD = 0.15
 BLOCKING_TERMS = ("contact", "coverage", "covered", "on-top", "on top", "overlap")
 ```
 
@@ -280,7 +281,7 @@ def apply_conservative_route_guard(
 
     # direct checks append stable machine-readable reasons:
     # invalid_target_id, low_confidence, ambiguity_present,
-    # clutter_prior, router_blocking_evidence, predicted_target_overlap
+    # router_blocking_evidence, predicted_target_overlap
     # blocker checks append unsupported_blocker_evidence.
 
     return {
@@ -474,7 +475,8 @@ Add a test that a conservative run summary and manifest contain:
 {
     "route_guard_variant": "conservative_v1",
     "direct_confidence_threshold": 0.90,
-    "direct_max_object_count": 3,
+    "direct_max_object_count": None,
+    "target_overlap_threshold": 0.15,
     "guard_code_version": "conservative-v1",
 }
 ```

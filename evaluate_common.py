@@ -79,6 +79,10 @@ def evaluate_subset(
     resume: bool = False,
     mimo_retry_mode: str = "none",
     segmentation_variant: str = "baseline",
+    routing_variant: str = "none",
+    feature_source: str = "none",
+    protocol_ablation: str = "full",
+    route_guard_variant: str = "none",
 ) -> dict:
     os.makedirs(MOLMO_OUTPUT_DIR, exist_ok=True)
 
@@ -104,6 +108,10 @@ def evaluate_subset(
         resume=resume,
         mimo_retry_mode=mimo_retry_mode,
         segmentation_variant=segmentation_variant,
+        routing_variant=routing_variant,
+        feature_source=feature_source,
+        protocol_ablation=protocol_ablation,
+        route_guard_variant=route_guard_variant,
         evaluation_subset=subset_name,
         details_json_path=details_json_path,
     )

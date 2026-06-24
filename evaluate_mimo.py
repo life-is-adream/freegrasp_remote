@@ -201,6 +201,11 @@ def parse_args(argv=None):
             "candidate_grasp_fewshot_json",
             "candidate_grasp_spatial_json",
             "candidate_grasp_semantic_json",
+            "target_first_grasp_planner_json",
+            "target_first_grasp_planner_v7_json",
+            "target_first_grasp_geometry_v8_json",
+            "target_first_evidence_gate_v9_json",
+            "hard_blocker_first_v10_json",
         ],
         default="legacy",
     )
@@ -209,16 +214,23 @@ def parse_args(argv=None):
         "--mimo-retry-mode",
         choices=[
             "none",
+            "original_protocol",
             "id_repair",
             "hard_review",
             "target_review",
             "roborefer_verify",
             "candidate_verify",
             "first_grasp_verify",
+            "planner_consistency_repair",
+            "geometry_consistency_repair",
         ],
         default="none",
     )
-    parser.add_argument("--segmentation-variant", choices=["baseline", "point_retry"], default="baseline")
+    parser.add_argument(
+        "--segmentation-variant",
+        choices=["baseline", "point_retry", "geometric_consistency"],
+        default="baseline",
+    )
     parser.add_argument(
         "--subset-policy",
         choices=[
@@ -235,7 +247,31 @@ def parse_args(argv=None):
             "candidate_grasp_fewshot_v3",
             "candidate_grasp_spatial_v4",
             "candidate_grasp_semantic_v5",
+            "target_first_grasp_planner_v6",
+            "target_first_grasp_planner_v7",
+            "target_first_grasp_geometry_v8",
+            "target_first_evidence_gate_v9",
+            "hard_blocker_first_v10",
+            "automatic_evidence_v1",
+            "automatic_no_blocker_first",
+            "automatic_no_geometry_repair",
+            "automatic_no_id_repair",
         ],
+        default="none",
+    )
+    parser.add_argument(
+        "--routing-variant",
+        choices=["none", "count_only", "vlm_two_stage", "predicted_geometry"],
+        default="none",
+    )
+    parser.add_argument(
+        "--feature-source",
+        choices=["none", "predicted", "oracle_feature"],
+        default="none",
+    )
+    parser.add_argument(
+        "--route-guard-variant",
+        choices=["none", "conservative_v1", "target_evidence_v2"],
         default="none",
     )
     parser.add_argument("--run-dir", default=None, help="Existing or new run directory.")
@@ -287,6 +323,9 @@ def evaluate_mimo_pipeline(
     mimo_retry_mode: str = "none",
     segmentation_variant: str = "baseline",
     subset_policy: str = "none",
+    routing_variant: str = "none",
+    feature_source: str = "none",
+    route_guard_variant: str = "none",
 ):
     mimo_client = create_mimo_client(api_key=mimo_api_key, base_url=mimo_base_url)
     if mimo_preflight:
@@ -309,6 +348,9 @@ def evaluate_mimo_pipeline(
         mimo_retry_mode=mimo_retry_mode,
         segmentation_variant=segmentation_variant,
         subset_policy=subset_policy,
+        routing_variant=routing_variant,
+        feature_source=feature_source,
+        route_guard_variant=route_guard_variant,
         reuse_molmo=reuse_molmo,
         resume=resume,
         run_dir=run_dir,
@@ -330,4 +372,7 @@ if __name__ == "__main__":
         mimo_retry_mode=args.mimo_retry_mode,
         segmentation_variant=args.segmentation_variant,
         subset_policy=args.subset_policy,
+        routing_variant=args.routing_variant,
+        feature_source=args.feature_source,
+        route_guard_variant=args.route_guard_variant,
     )

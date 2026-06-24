@@ -15,7 +15,7 @@ utils_stub = types.ModuleType("utils.utils")
 utils_stub.get_prediction_result = lambda *args, **kwargs: None
 sys.modules.setdefault("utils.utils", utils_stub)
 
-from reasoning_eval import process_dataset
+from reasoning_eval import _load_instance_objects, process_dataset
 
 
 def _image_bytes() -> bytes:
@@ -26,6 +26,16 @@ def _image_bytes() -> bytes:
 
 
 class ReasoningResumeTest(unittest.TestCase):
+    def test_load_instance_objects_accepts_real_npz_key_without_suffix(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "scene.npz"
+            expected = np.ones((1, 2, 2), dtype=np.uint8)
+            np.savez(path, instances_objects=expected)
+
+            loaded = _load_instance_objects(np.load(path, allow_pickle=True))
+
+        np.testing.assert_array_equal(loaded, expected)
+
     def test_resume_preserves_existing_rows_and_only_processes_missing_samples(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
