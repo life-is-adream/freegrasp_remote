@@ -6,10 +6,9 @@ maps the score to one of three route modes:
   target_first → medium-like → target_first_evidence_gate_v9 + geometry_repair
   blocker_first → hard-like  → hard_blocker_first_v10 + id_repair
 
-No VLM call is needed — the router uses only geometric features
-already available as intermediate products of the pipeline.
+v4: Two-stage router with VLM fallback for uncertain cases.
 
-Version: scene-complexity-v3 (depth-aware hook added)
+Version: scene-complexity-v4 (VLM two-stage)
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ import numpy as np
 # Configuration — tuned by offline audit (v2)
 # ---------------------------------------------------------------------------
 
-SCENE_ROUTER_VERSION = "scene-complexity-v3"
+SCENE_ROUTER_VERSION = "scene-complexity-v4"
 
 # Object count thresholds
 COUNT_LOW_MAX = 5       # ≤ 5 → low density score
@@ -41,6 +40,86 @@ EXTENT_HIGH_MIN = 0.80  # ≥ 80% → wide
 # Composite score thresholds
 SCORE_MEDIUM_CEIL = 0.7  # score < 0.7 → direct
 SCORE_HARD_CEIL = 1.2    # score < 1.2 → target_first; ≥ 1.2 → blocker_first
+
+# VLM two-stage thresholds
+VLM_UNCERTAIN_LOW = 0.5   # score < 0.5 → confident direct, skip VLM
+VLM_UNCERTAIN_HIGH = 1.5  # score > 1.5 → confident blocker_first, skip VLM
+# Between 0.5 and 1.5 → uncertain → call VLM
+
+
+# ---------------------------------------------------------------------------
+# VLM two-stage router (v4)
+# ---------------------------------------------------------------------------
+
+def vlm_scene_complexity_prompt():
+    """System prompt for the VLM scene complexity assessment."""
+    return (
+        "You are a scene complexity assessor for a robotic grasping system.\n"
+        "Analyze the image and determine the occlusion level of objects.\n"
+        "\n"
+        "Rules:\n"
+        "- 'none': All objects are clearly visible with no occlusion.\n"
+        "- 'light': Some objects are partially occluded or overlapping.\n"
+        "- 'heavy': Significant occlusion; objects are hidden behind others.\n"
+        "\n"
+        "Respond in JSON only:\n"
+        '{"occlusion_level": "none" | "light" | "heavy", "confidence": 0.0-1.0, "reason": "brief explanation"}'
+    )
+
+
+def parse_vlm_route(vlm_output):
+    """Parse VLM occlusion assessment into a route_mode.
+
+    Returns
+    -------
+    dict with route_mode, confidence, occlusion_level, reason
+    """
+    import json
+    try:
+        # Try to extract JSON from the output
+        text = vlm_output.strip()
+        # Handle markdown code blocks
+        if "```" in text:
+            start = text.find("{")
+            end = text.rfind("}") + 1
+            if start >= 0 and end > start:
+                text = text[start:end]
+        data = json.loads(text)
+        occlusion = data.get("occlusion_level", "none").lower()
+        confidence = float(data.get("confidence", 0.5))
+        reason = data.get("reason", "")
+    except (json.JSONDecodeError, ValueError, TypeError):
+        # Fallback: try keyword matching
+        text_lower = vlm_output.lower()
+        if "heavy" in text_lower or "significant" in text_lower or "hidden" in text_lower:
+            occlusion = "heavy"
+            confidence = 0.6
+        elif "light" in text_lower or "partial" in text_lower or "overlap" in text_lower:
+            occlusion = "light"
+            confidence = 0.5
+        else:
+            occlusion = "none"
+            confidence = 0.4
+        reason = f"keyword_fallback: {vlm_output[:80]}"
+
+    if occlusion == "heavy":
+        route_mode = "blocker_first"
+    elif occlusion == "light":
+        route_mode = "target_first"
+    else:
+        route_mode = "direct"
+
+    return {
+        "route_mode": route_mode,
+        "confidence": round(confidence, 3),
+        "occlusion_level": occlusion,
+        "reason": reason,
+    }
+
+
+def needs_vlm_fallback(composite_score):
+    """Return True if the geometric score is in the uncertain zone."""
+    return VLM_UNCERTAIN_LOW <= composite_score <= VLM_UNCERTAIN_HIGH
 
 
 # ---------------------------------------------------------------------------
@@ -331,3 +410,63 @@ def route_scene(parsed_data, predicted_geometry=None, image_shape=None, depth_ma
             "depth_available": features.depth_available,
         },
     }
+
+
+def route_scene_vlm(parsed_data, predicted_geometry=None, image_shape=None,
+                    depth_map=None, vlm_output=None):
+    """Two-stage router: geometric features + VLM fallback.
+
+    Parameters
+    ----------
+    parsed_data : list of (molmo_id, x, y, gt_id)
+    predicted_geometry : dict, optional
+    image_shape : tuple of (H, W), optional
+    depth_map : numpy array, optional
+    vlm_output : str or None
+        Pre-computed VLM response. If None and VLM is needed,
+        caller must provide it via the pipeline.
+
+    Returns
+    -------
+    dict with route_assessment + vlm_stage info
+    """
+    features = compute_scene_features(
+        parsed_data,
+        predicted_geometry=predicted_geometry,
+        image_shape=image_shape,
+        depth_map=depth_map,
+    )
+
+    assessment = route_scene(
+        parsed_data,
+        predicted_geometry=predicted_geometry,
+        image_shape=image_shape,
+        depth_map=depth_map,
+    )
+
+    # Determine if VLM fallback is needed
+    vlm_needed = needs_vlm_fallback(features.composite_score)
+    vlm_used = False
+    vlm_route = None
+
+    if vlm_needed and vlm_output is not None:
+        vlm_route = parse_vlm_route(vlm_output)
+        # Override the geometric route with VLM decision
+        assessment["route_mode"] = vlm_route["route_mode"]
+        assessment["route_confidence"] = vlm_route["confidence"]
+        assessment["scene_complexity"]["route_mode"] = vlm_route["route_mode"]
+        vlm_used = True
+
+    assessment["vlm_stage"] = {
+        "needed": vlm_needed,
+        "used": vlm_used,
+        "composite_score": features.composite_score,
+        "uncertain_low": VLM_UNCERTAIN_LOW,
+        "uncertain_high": VLM_UNCERTAIN_HIGH,
+    }
+    if vlm_route:
+        assessment["vlm_stage"]["occlusion_level"] = vlm_route["occlusion_level"]
+        assessment["vlm_stage"]["vlm_confidence"] = vlm_route["confidence"]
+        assessment["vlm_stage"]["vlm_reason"] = vlm_route["reason"]
+
+    return assessment

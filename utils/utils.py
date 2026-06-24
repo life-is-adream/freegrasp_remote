@@ -17,7 +17,13 @@ from utils.scene_evidence import (
     predict_geometry_from_molmo_points,
     select_consistent_mask,
 )
-from utils.scene_router import compute_scene_features, route_scene
+from utils.scene_router import (
+    compute_scene_features,
+    route_scene,
+    route_scene_vlm,
+    vlm_scene_complexity_prompt,
+    needs_vlm_fallback,
+)
 
 try:
     import open3d as o3d
@@ -53,6 +59,7 @@ VALID_ROUTING_VARIANTS = {
     "vlm_two_stage",
     "predicted_geometry",
     "scene_complexity",
+    "scene_complexity_vlm",
 }
 VALID_PROTOCOL_ABLATIONS = {
     "full",
@@ -1844,6 +1851,55 @@ def get_prediction_result(
                 "spatial_extent": scene_features.get("spatial_extent"),
             }
             reasoning["router_call_count"] = 0
+        elif routing_variant == "scene_complexity_vlm":
+            # Two-stage router: geometric features + VLM fallback
+            image_shape = (
+                (image_pil.height, image_pil.width)
+                if hasattr(image_pil, "height")
+                else None
+            )
+            scene_features = compute_scene_features(
+                parsed_data,
+                predicted_geometry=geometry_features or None,
+                image_shape=image_shape,
+            )
+            vlm_needed = needs_vlm_fallback(scene_features.composite_score)
+            vlm_output = None
+            router_call_count = 0
+            if vlm_needed:
+                # Call MiMo for scene complexity assessment
+                vlm_messages = _make_reasoning_messages(
+                    vlm_scene_complexity_prompt(),
+                    f"Scene has {scene_features.object_count} visible objects.",
+                    base64_image,
+                )
+                vlm_output = _call_reasoning_model(
+                    vlm_messages,
+                    model_name,
+                    min(max_output_tokens, 256),
+                )
+                reasoning["raw_outputs"].append(vlm_output)
+                reasoning["vlm_router_raw_output"] = vlm_output
+                router_call_count = 1
+
+            route_assessment = route_scene_vlm(
+                parsed_data,
+                predicted_geometry=geometry_features or None,
+                image_shape=image_shape,
+                vlm_output=vlm_output,
+            )
+            reasoning["scene_complexity_features"] = {
+                "object_count": scene_features.object_count,
+                "composite_score": scene_features.composite_score,
+                "density_score": scene_features.density_score,
+                "cluster_score": scene_features.cluster_score,
+                "extent_score": scene_features.extent_score,
+                "nn_cluster_ratio": scene_features.nn_cluster_ratio,
+                "spatial_extent": scene_features.spatial_extent,
+                "vlm_needed": vlm_needed,
+                "vlm_used": route_assessment.get("vlm_stage", {}).get("used", False),
+            }
+            reasoning["router_call_count"] = router_call_count
         elif routing_variant in {"vlm_two_stage", "predicted_geometry"}:
             router_text = format_router_input(
                 input_text,

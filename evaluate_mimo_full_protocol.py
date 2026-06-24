@@ -36,7 +36,7 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--routing-variant",
-        choices=["none", "count_only", "vlm_two_stage", "predicted_geometry", "scene_complexity"],
+        choices=["none", "count_only", "vlm_two_stage", "predicted_geometry", "scene_complexity", "scene_complexity_vlm"],
         default="none",
     )
     parser.add_argument(
@@ -231,6 +231,10 @@ def run_full_protocol(args):
         "scene_complexity_no_blocker_first",
         "scene_complexity_no_geometry_repair",
         "scene_complexity_no_id_repair",
+        "scene_complexity_vlm_auto",
+        "scene_complexity_vlm_no_blocker_first",
+        "scene_complexity_vlm_no_geometry_repair",
+        "scene_complexity_vlm_no_id_repair",
     }
     manifest = build_manifest(
         {

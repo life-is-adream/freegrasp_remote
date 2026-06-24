@@ -34,6 +34,11 @@ def experiment_registry():
         ExperimentSpec("S9", 1, "scene_complexity_no_blocker_first", "scene_complexity", "point_retry", "none"),
         ExperimentSpec("S10", 1, "scene_complexity_no_geometry_repair", "scene_complexity", "point_retry", "none"),
         ExperimentSpec("S11", 1, "scene_complexity_no_id_repair", "scene_complexity", "point_retry", "none"),
+        # VLM two-stage router experiments (paid inference)
+        ExperimentSpec("V1", 1, "scene_complexity_vlm_auto", "scene_complexity_vlm", "point_retry", "none"),
+        ExperimentSpec("V2", 1, "scene_complexity_vlm_no_blocker_first", "scene_complexity_vlm", "point_retry", "none"),
+        ExperimentSpec("V3", 1, "scene_complexity_vlm_no_geometry_repair", "scene_complexity_vlm", "point_retry", "none"),
+        ExperimentSpec("V4", 1, "scene_complexity_vlm_no_id_repair", "scene_complexity_vlm", "point_retry", "none"),
         ExperimentSpec("F0", 2, "original_protocol", "none", "baseline", "none", fresh_molmo=True),
         ExperimentSpec("F1", 2, "automatic_evidence_v1", "predicted_geometry", "geometric_consistency", "predicted"),
         ExperimentSpec("F2", 2, "hard_blocker_first_v10", "none", "point_retry", "oracle_feature"),

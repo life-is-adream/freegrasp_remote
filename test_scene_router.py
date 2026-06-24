@@ -13,6 +13,10 @@ from utils.scene_router import (
     SceneComplexityFeatures,
     compute_scene_features,
     route_scene,
+    route_scene_vlm,
+    vlm_scene_complexity_prompt,
+    parse_vlm_route,
+    needs_vlm_fallback,
     SCENE_ROUTER_VERSION,
 )
 
@@ -27,7 +31,7 @@ def _make_parsed_data(points):
 
 class TestSceneRouterVersion(unittest.TestCase):
     def test_version_string(self):
-        self.assertIn("v3", SCENE_ROUTER_VERSION)
+        self.assertIn("v4", SCENE_ROUTER_VERSION)
 
 
 class TestComputeSceneFeatures(unittest.TestCase):
@@ -111,6 +115,65 @@ class TestSceneComplexityFeatures(unittest.TestCase):
         self.assertEqual(features.object_count, 5)
         self.assertEqual(features.depth_occlusion_score, 0.0)
         self.assertFalse(features.depth_available)
+
+
+class TestVLMRouter(unittest.TestCase):
+    def test_vlm_prompt_returns_string(self):
+        prompt = vlm_scene_complexity_prompt()
+        self.assertIn("occlusion", prompt.lower())
+        self.assertIn("JSON", prompt)
+
+    def test_parse_vlm_route_heavy(self):
+        vlm_output = '{"occlusion_level": "heavy", "confidence": 0.9, "reason": "objects hidden"}'
+        result = parse_vlm_route(vlm_output)
+        self.assertEqual(result["route_mode"], "blocker_first")
+        self.assertEqual(result["occlusion_level"], "heavy")
+        self.assertAlmostEqual(result["confidence"], 0.9)
+
+    def test_parse_vlm_route_light(self):
+        vlm_output = '{"occlusion_level": "light", "confidence": 0.7, "reason": "partial overlap"}'
+        result = parse_vlm_route(vlm_output)
+        self.assertEqual(result["route_mode"], "target_first")
+        self.assertEqual(result["occlusion_level"], "light")
+
+    def test_parse_vlm_route_none(self):
+        vlm_output = '{"occlusion_level": "none", "confidence": 0.8, "reason": "all visible"}'
+        result = parse_vlm_route(vlm_output)
+        self.assertEqual(result["route_mode"], "direct")
+        self.assertEqual(result["occlusion_level"], "none")
+
+    def test_parse_vlm_route_markdown_block(self):
+        vlm_output = '```json\n{"occlusion_level": "heavy", "confidence": 0.85}\n```'
+        result = parse_vlm_route(vlm_output)
+        self.assertEqual(result["route_mode"], "blocker_first")
+
+    def test_parse_vlm_route_fallback_keyword(self):
+        vlm_output = "The scene has significant occlusion with objects hidden behind others."
+        result = parse_vlm_route(vlm_output)
+        self.assertEqual(result["route_mode"], "blocker_first")
+
+    def test_needs_vlm_fallback(self):
+        self.assertFalse(needs_vlm_fallback(0.3))   # confident direct
+        self.assertTrue(needs_vlm_fallback(0.8))    # uncertain
+        self.assertTrue(needs_vlm_fallback(1.2))    # uncertain
+        self.assertFalse(needs_vlm_fallback(1.8))   # confident blocker_first
+
+    def test_route_scene_vlm_without_vlm(self):
+        parsed = _make_parsed_data([(100, 100), (200, 200)])
+        assessment = route_scene_vlm(parsed, image_shape=(400, 400))
+        self.assertIn("vlm_stage", assessment)
+        self.assertIn("route_mode", assessment)
+
+    def test_route_scene_vlm_with_vlm_override(self):
+        parsed = _make_parsed_data([(100, 100), (150, 150), (200, 200)])
+        vlm_output = '{"occlusion_level": "heavy", "confidence": 0.9, "reason": "test"}'
+        assessment = route_scene_vlm(
+            parsed, image_shape=(400, 400), vlm_output=vlm_output
+        )
+        # If VLM was needed and used, route should be overridden
+        vlm_stage = assessment["vlm_stage"]
+        if vlm_stage["needed"] and vlm_stage["used"]:
+            self.assertEqual(assessment["route_mode"], "blocker_first")
 
 
 if __name__ == "__main__":
