@@ -256,12 +256,16 @@ def parse_args(argv=None):
             "automatic_no_blocker_first",
             "automatic_no_geometry_repair",
             "automatic_no_id_repair",
+            "scene_complexity_auto",
+            "scene_complexity_no_blocker_first",
+            "scene_complexity_no_geometry_repair",
+            "scene_complexity_no_id_repair",
         ],
         default="none",
     )
     parser.add_argument(
         "--routing-variant",
-        choices=["none", "count_only", "vlm_two_stage", "predicted_geometry"],
+        choices=["none", "count_only", "vlm_two_stage", "predicted_geometry", "scene_complexity"],
         default="none",
     )
     parser.add_argument(

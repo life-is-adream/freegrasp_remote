@@ -79,12 +79,16 @@ def parse_args(argv=None):
             "automatic_no_blocker_first",
             "automatic_no_geometry_repair",
             "automatic_no_id_repair",
+            "scene_complexity_auto",
+            "scene_complexity_no_blocker_first",
+            "scene_complexity_no_geometry_repair",
+            "scene_complexity_no_id_repair",
         ],
         default="none",
     )
     parser.add_argument(
         "--routing-variant",
-        choices=["none", "count_only", "vlm_two_stage", "predicted_geometry"],
+        choices=["none", "count_only", "vlm_two_stage", "predicted_geometry", "scene_complexity"],
         default="none",
     )
     parser.add_argument(
@@ -180,6 +184,35 @@ def _subset_config(
             "protocol_ablation": automatic_policies[subset_policy],
         }
 
+    if subset_policy == "scene_complexity_auto":
+        return {
+            "prompt_variant": "legacy",
+            "mimo_retry_mode": "none",
+            "segmentation_variant": segmentation_variant,
+            "routing_variant": "scene_complexity",
+            "feature_source": "none",
+            "uses_benchmark_difficulty": False,
+            "uses_gt_features": False,
+            "protocol_ablation": "full",
+        }
+
+    scene_complexity_ablation_policies = {
+        "scene_complexity_no_blocker_first": "no_blocker_first",
+        "scene_complexity_no_geometry_repair": "no_geometry_repair",
+        "scene_complexity_no_id_repair": "no_id_repair",
+    }
+    if subset_policy in scene_complexity_ablation_policies:
+        return {
+            "prompt_variant": "legacy",
+            "mimo_retry_mode": "none",
+            "segmentation_variant": segmentation_variant,
+            "routing_variant": "scene_complexity",
+            "feature_source": "none",
+            "uses_benchmark_difficulty": False,
+            "uses_gt_features": False,
+            "protocol_ablation": scene_complexity_ablation_policies[subset_policy],
+        }
+
     if subset_policy not in {
         "observed_best_v1",
         "original_protocol",
@@ -203,6 +236,10 @@ def _subset_config(
         "automatic_no_blocker_first",
         "automatic_no_geometry_repair",
         "automatic_no_id_repair",
+        "scene_complexity_auto",
+        "scene_complexity_no_blocker_first",
+        "scene_complexity_no_geometry_repair",
+        "scene_complexity_no_id_repair",
     }:
         raise ValueError(f"Unknown subset_policy: {subset_policy}")
 

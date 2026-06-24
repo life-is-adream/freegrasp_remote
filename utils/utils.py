@@ -17,6 +17,7 @@ from utils.scene_evidence import (
     predict_geometry_from_molmo_points,
     select_consistent_mask,
 )
+from utils.scene_router import compute_scene_features, route_scene
 
 try:
     import open3d as o3d
@@ -51,6 +52,7 @@ VALID_ROUTING_VARIANTS = {
     "count_only",
     "vlm_two_stage",
     "predicted_geometry",
+    "scene_complexity",
 }
 VALID_PROTOCOL_ABLATIONS = {
     "full",
@@ -1695,6 +1697,8 @@ def _automatic_retry_mode(route_mode, protocol_ablation):
             if route_mode == "target_first"
             else "none"
         )
+    if route_mode == "direct":
+        return "id_repair"
     if route_mode == "target_first" and protocol_ablation != "no_geometry_repair":
         return "geometry_consistency_repair"
     return "id_repair"
@@ -1814,6 +1818,32 @@ def get_prediction_result(
                 "ambiguity_evidence": [],
                 "blocker_evidence": [],
             }
+        elif routing_variant == "scene_complexity":
+            image_shape = (
+                (image_pil.height, image_pil.width)
+                if hasattr(image_pil, "height")
+                else None
+            )
+            route_assessment = route_scene(
+                parsed_data,
+                predicted_geometry=geometry_features or None,
+                image_shape=image_shape,
+            )
+            scene_features = compute_scene_features(
+                parsed_data,
+                predicted_geometry=geometry_features or None,
+                image_shape=image_shape,
+            )
+            reasoning["scene_complexity_features"] = {
+                "object_count": scene_features.get("object_count"),
+                "composite_score": scene_features.get("composite_score"),
+                "density_score": scene_features.get("density_score"),
+                "cluster_score": scene_features.get("cluster_score"),
+                "extent_score": scene_features.get("extent_score"),
+                "nn_cluster_ratio": scene_features.get("nn_cluster_ratio"),
+                "spatial_extent": scene_features.get("spatial_extent"),
+            }
+            reasoning["router_call_count"] = 0
         elif routing_variant in {"vlm_two_stage", "predicted_geometry"}:
             router_text = format_router_input(
                 input_text,
