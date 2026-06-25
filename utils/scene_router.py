@@ -13,6 +13,7 @@ Version: scene-complexity-v4 (VLM two-stage)
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from itertools import combinations
 
@@ -470,3 +471,273 @@ def route_scene_vlm(parsed_data, predicted_geometry=None, image_shape=None,
         assessment["vlm_stage"]["vlm_reason"] = vlm_route["reason"]
 
     return assessment
+
+
+# ---------------------------------------------------------------------------
+# Depth-based learned classifier router (v5)
+# ---------------------------------------------------------------------------
+
+_DEPTH_MODEL = None  # lazy-loaded
+_DEPTH_FEATURE_COLS = None
+
+
+def _sample_depth_region(depth_map, x, y, radius=15):
+    """Sample depth values in a region around (x, y)."""
+    h, w = depth_map.shape
+    y_min = max(0, y - radius)
+    y_max = min(h, y + radius + 1)
+    x_min = max(0, x - radius)
+    x_max = min(w, x + radius + 1)
+    region = depth_map[y_min:y_max, x_min:x_max]
+    valid = region[region > 0]
+    if len(valid) == 0:
+        return None
+    return valid
+
+
+def extract_depth_route_features(parsed_data, scene_number, npz_dir=None, query_target_id=None):
+    """Extract depth-only features for routing.
+
+    Uses depth map from NPZ + Molmo point coordinates.
+    No GT masks or SAM inference needed.
+
+    Parameters
+    ----------
+    parsed_data : list of (molmo_id, x, y, gt_id)
+    scene_number : int or str
+    npz_dir : str, optional
+    query_target_id : int or None
+        1-indexed target object id from the dataset queryObjId.
+        If None, router falls back to geometric routing.
+
+    Returns
+    -------
+    dict of feature_name -> float, or None
+    """
+    if npz_dir is None:
+        npz_dir = os.path.join(os.path.dirname(__file__), "..", "data", "npz_file")
+    npz_path = os.path.join(npz_dir, f"{scene_number}.npz")
+    if not os.path.exists(npz_path):
+        return None
+
+    gt = np.load(npz_path, allow_pickle=True)
+    depth = gt["depth"]
+
+    # Use the provided query_target_id (1-indexed)
+    if query_target_id is None:
+        return None  # refuse to guess; caller should fallback
+
+    target_id = int(query_target_id)
+    num_objects = len(parsed_data)
+    if num_objects == 0:
+        return None
+
+    # Get depth for each object
+    obj_depths = {}
+    obj_coords = {}
+    for molmo_id, px, py, _gt_id in parsed_data:
+        oid = int(molmo_id)
+        valid_depths = _sample_depth_region(depth, px, py, radius=20)
+        if valid_depths is not None and len(valid_depths) > 0:
+            obj_depths[oid] = {
+                "mean": float(np.mean(valid_depths)),
+                "std": float(np.std(valid_depths)),
+                "median": float(np.median(valid_depths)),
+                "min": float(np.min(valid_depths)),
+                "max": float(np.max(valid_depths)),
+            }
+            obj_coords[oid] = (px, py)
+
+    if len(obj_depths) < 2:
+        return None
+
+    # Default target is the first object (molmo_id=0)
+    if target_id not in obj_depths:
+        target_id = min(obj_depths.keys())
+
+    features = {}
+    features["num_objects"] = num_objects
+    features["n_depth_valid"] = len(obj_depths)
+
+    td = obj_depths[target_id]
+    features["target_depth_mean"] = td["mean"]
+    features["target_depth_std"] = td["std"]
+    features["target_depth_range"] = td["max"] - td["min"]
+
+    all_depth_means = [d["mean"] for d in obj_depths.values()]
+    scene_depth_mean = float(np.mean(all_depth_means))
+    scene_depth_std = float(np.std(all_depth_means))
+    features["scene_depth_mean"] = scene_depth_mean
+    features["scene_depth_std"] = scene_depth_std
+    features["target_vs_scene_depth"] = td["mean"] - scene_depth_mean
+
+    n_in_front = 0
+    n_behind = 0
+    depth_diffs = []
+    for oid, d in obj_depths.items():
+        if oid == target_id:
+            continue
+        diff = d["mean"] - td["mean"]
+        depth_diffs.append(diff)
+        if d["mean"] < td["mean"] - 0.5:
+            n_in_front += 1
+        elif d["mean"] > td["mean"] + 0.5:
+            n_behind += 1
+
+    features["n_objects_in_front"] = n_in_front
+    features["n_objects_behind"] = n_behind
+    features["depth_rank_ratio"] = n_in_front / max(1, num_objects - 1)
+
+    if depth_diffs:
+        features["mean_depth_diff"] = float(np.mean(depth_diffs))
+        features["std_depth_diff"] = float(np.std(depth_diffs))
+        features["min_depth_diff"] = float(np.min(depth_diffs))
+        features["max_depth_diff"] = float(np.max(depth_diffs))
+    else:
+        features["mean_depth_diff"] = 0.0
+        features["std_depth_diff"] = 0.0
+        features["min_depth_diff"] = 0.0
+        features["max_depth_diff"] = 0.0
+
+    # Spatial features
+    coords = np.array([(obj_coords[oid][0], obj_coords[oid][1])
+                        for oid in obj_depths], dtype=float)
+    x_min, y_min = coords.min(axis=0)
+    x_max, y_max = coords.max(axis=0)
+    bbox_area = (x_max - x_min + 1) * (y_max - y_min + 1)
+    total_area = depth.shape[0] * depth.shape[1]
+    features["scene_bbox_ratio"] = bbox_area / total_area
+
+    tx, ty = obj_coords[target_id]
+    dists_to_target = np.sqrt(((coords - np.array([tx, ty])) ** 2).sum(axis=1))
+    dists_to_target = dists_to_target[dists_to_target > 0]
+    if len(dists_to_target) > 0:
+        nearest_dist = float(dists_to_target.min())
+        features["target_nearest_dist"] = nearest_dist
+        features["target_bbox_ratio"] = (nearest_dist * 2) ** 2 / total_area
+    else:
+        features["target_nearest_dist"] = 0.0
+        features["target_bbox_ratio"] = 0.0
+
+    if len(coords) >= 2:
+        diff = coords[:, None, :] - coords[None, :, :]
+        dist_matrix = np.sqrt((diff ** 2).sum(axis=-1))
+        np.fill_diagonal(dist_matrix, np.inf)
+        nn_dists = dist_matrix.min(axis=1)
+        image_diag = float(np.hypot(depth.shape[0], depth.shape[1]))
+        features["mean_nn_ratio"] = float(np.mean(nn_dists)) / image_diag
+        features["median_nn_ratio"] = float(np.median(nn_dists)) / image_diag
+    else:
+        features["mean_nn_ratio"] = 0.0
+        features["median_nn_ratio"] = 0.0
+
+    n_close_and_in_front = 0
+    for oid, d in obj_depths.items():
+        if oid == target_id:
+            continue
+        ox, oy = obj_coords[oid]
+        spatial_dist = np.sqrt((tx - ox) ** 2 + (ty - oy) ** 2)
+        if spatial_dist < 100 and d["mean"] < td["mean"]:
+            n_close_and_in_front += 1
+    features["n_close_in_front"] = n_close_and_in_front
+
+    return features
+
+
+def _load_depth_model():
+    """Lazy-load the trained depth classifier."""
+    global _DEPTH_MODEL, _DEPTH_FEATURE_COLS
+    if _DEPTH_MODEL is not None:
+        return
+    try:
+        from joblib import load as joblib_load
+        model_path = os.path.join(
+            os.path.dirname(__file__), "..", "models", "difficulty_depth_rf_v1.joblib"
+        )
+        if os.path.exists(model_path):
+            _DEPTH_MODEL = joblib_load(model_path)
+            _DEPTH_FEATURE_COLS = [
+                "num_objects", "n_depth_valid", "target_depth_mean", "target_depth_std",
+                "target_depth_range", "scene_depth_mean", "scene_depth_std",
+                "target_vs_scene_depth", "n_objects_in_front", "n_objects_behind",
+                "depth_rank_ratio", "mean_depth_diff", "std_depth_diff",
+                "min_depth_diff", "max_depth_diff", "scene_bbox_ratio",
+                "target_nearest_dist", "target_bbox_ratio", "mean_nn_ratio",
+                "median_nn_ratio", "n_close_in_front",
+            ]
+    except Exception:
+        _DEPTH_MODEL = None
+
+
+def route_scene_depth_classifier(parsed_data, scene_number, npz_dir=None, query_target_id=None):
+    """Route using the depth-based learned classifier (v2: target-aware).
+
+    Parameters
+    ----------
+    parsed_data : list of (molmo_id, x, y, gt_id)
+    scene_number : int or str
+    npz_dir : str, optional
+    query_target_id : int or None
+        1-indexed target object id from the dataset queryObjId.
+        If None, falls back to geometric router with provenance.
+
+    Returns
+    -------
+    dict route_assessment with provenance
+    """
+    _load_depth_model()
+
+    route_map_int = {0: "direct", 1: "target_first", 2: "blocker_first"}
+
+    feature_target_valid = False
+    fallback_reason = None
+
+    if query_target_id is None:
+        fallback_reason = "no_query_target_id"
+    else:
+        features = extract_depth_route_features(
+            parsed_data, int(scene_number), npz_dir=npz_dir,
+            query_target_id=query_target_id,
+        )
+        if features is None:
+            fallback_reason = "feature_extraction_failed"
+        elif _DEPTH_MODEL is None:
+            fallback_reason = "model_not_loaded"
+        else:
+            feature_target_valid = True
+
+    if feature_target_valid:
+        X = np.array([[features.get(c, 0.0) for c in _DEPTH_FEATURE_COLS]], dtype=float)
+        pred = int(_DEPTH_MODEL.predict(X)[0])
+        route_mode = route_map_int.get(pred, "direct")
+    else:
+        # Fallback to geometric router
+        assessment = route_scene(parsed_data)
+        assessment["scene_complexity"]["model"] = "depth_rf_v2_geometric_fallback"
+        assessment["scene_complexity"]["fallback_reason"] = fallback_reason
+        assessment["scene_complexity"]["query_target_id"] = query_target_id
+        assessment["scene_complexity"]["feature_target_valid"] = False
+        return assessment
+
+    return {
+        "route_mode": route_mode,
+        "route_confidence": 1.0,
+        "target_object_id": None,
+        "target_label": "target",
+        "ambiguity_evidence": [],
+        "blocker_evidence": [],
+        "scene_router_version": "depth-classifier-v2",
+        "scene_complexity": {
+            "model": "depth_rf_v2",
+            "route_mode": route_mode,
+            "query_target_id": query_target_id,
+            "feature_target_valid": True,
+            "fallback_reason": None,
+            "num_objects": features.get("num_objects", 0),
+            "n_depth_valid": features.get("n_depth_valid", 0),
+            "target_vs_scene_depth": features.get("target_vs_scene_depth", 0.0),
+            "n_objects_in_front": features.get("n_objects_in_front", 0),
+            "depth_rank_ratio": features.get("depth_rank_ratio", 0.0),
+            "n_close_in_front": features.get("n_close_in_front", 0),
+        },
+    }

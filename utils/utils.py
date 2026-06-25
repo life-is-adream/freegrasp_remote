@@ -21,6 +21,7 @@ from utils.scene_router import (
     compute_scene_features,
     route_scene,
     route_scene_vlm,
+    route_scene_depth_classifier,
     vlm_scene_complexity_prompt,
     needs_vlm_fallback,
 )
@@ -60,6 +61,8 @@ VALID_ROUTING_VARIANTS = {
     "predicted_geometry",
     "scene_complexity",
     "scene_complexity_vlm",
+    "depth_classifier",
+    "depth_classifier_v2",
 }
 VALID_PROTOCOL_ABLATIONS = {
     "full",
@@ -1728,6 +1731,7 @@ def get_prediction_result(
     protocol_ablation="full",
     route_guard_variant="none",
     frozen_route_assessment=None,
+    query_target_id=None,
 ):
     if mimo_retry_mode not in VALID_MIMO_RETRY_MODES:
         raise ValueError(f"Unknown mimo_retry_mode: {mimo_retry_mode}")
@@ -1900,6 +1904,32 @@ def get_prediction_result(
                 "vlm_used": route_assessment.get("vlm_stage", {}).get("used", False),
             }
             reasoning["router_call_count"] = router_call_count
+        elif routing_variant in {"depth_classifier", "depth_classifier_v2"}:
+            # Depth-based learned classifier router (v2: target-aware)
+            npz_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "..", "data", "npz_file"
+            )
+            route_assessment = route_scene_depth_classifier(
+                parsed_data,
+                scene_number,
+                npz_dir=npz_dir,
+                query_target_id=query_target_id,
+            )
+            sc = route_assessment.get("scene_complexity", {})
+            reasoning["scene_complexity_features"] = {
+                "model": sc.get("model", "depth_rf_v2"),
+                "route_mode": route_assessment["route_mode"],
+                "query_target_id": sc.get("query_target_id"),
+                "feature_target_valid": sc.get("feature_target_valid", False),
+                "fallback_reason": sc.get("fallback_reason"),
+                "num_objects": sc.get("num_objects", 0),
+                "n_depth_valid": sc.get("n_depth_valid", 0),
+                "target_vs_scene_depth": sc.get("target_vs_scene_depth", 0.0),
+                "n_objects_in_front": sc.get("n_objects_in_front", 0),
+                "depth_rank_ratio": sc.get("depth_rank_ratio", 0.0),
+                "n_close_in_front": sc.get("n_close_in_front", 0),
+            }
+            reasoning["router_call_count"] = 0
         elif routing_variant in {"vlm_two_stage", "predicted_geometry"}:
             router_text = format_router_input(
                 input_text,

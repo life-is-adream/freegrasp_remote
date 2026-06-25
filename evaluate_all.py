@@ -87,12 +87,20 @@ def parse_args(argv=None):
             "scene_complexity_vlm_no_blocker_first",
             "scene_complexity_vlm_no_geometry_repair",
             "scene_complexity_vlm_no_id_repair",
+            "depth_classifier_auto",
+            "depth_classifier_no_blocker_first",
+            "depth_classifier_no_geometry_repair",
+            "depth_classifier_no_id_repair",
+            "depth_classifier_v2_auto",
+            "depth_classifier_v2_no_blocker_first",
+            "depth_classifier_v2_no_geometry_repair",
+            "depth_classifier_v2_no_id_repair",
         ],
         default="none",
     )
     parser.add_argument(
         "--routing-variant",
-        choices=["none", "count_only", "vlm_two_stage", "predicted_geometry", "scene_complexity", "scene_complexity_vlm"],
+        choices=["none", "count_only", "vlm_two_stage", "predicted_geometry", "scene_complexity", "scene_complexity_vlm", "depth_classifier", "depth_classifier_v2"],
         default="none",
     )
     parser.add_argument(
@@ -247,6 +255,66 @@ def _subset_config(
             "protocol_ablation": scene_complexity_vlm_ablation_policies[subset_policy],
         }
 
+    # Depth classifier router policies
+    if subset_policy == "depth_classifier_auto":
+        return {
+            "prompt_variant": "legacy",
+            "mimo_retry_mode": "none",
+            "segmentation_variant": segmentation_variant,
+            "routing_variant": "depth_classifier",
+            "feature_source": "none",
+            "uses_benchmark_difficulty": False,
+            "uses_gt_features": False,
+            "protocol_ablation": "full",
+        }
+
+    depth_classifier_ablation_policies = {
+        "depth_classifier_no_blocker_first": "no_blocker_first",
+        "depth_classifier_no_geometry_repair": "no_geometry_repair",
+        "depth_classifier_no_id_repair": "no_id_repair",
+    }
+    if subset_policy in depth_classifier_ablation_policies:
+        return {
+            "prompt_variant": "legacy",
+            "mimo_retry_mode": "none",
+            "segmentation_variant": segmentation_variant,
+            "routing_variant": "depth_classifier",
+            "feature_source": "none",
+            "uses_benchmark_difficulty": False,
+            "uses_gt_features": False,
+            "protocol_ablation": depth_classifier_ablation_policies[subset_policy],
+        }
+
+    # Depth classifier v2 router policies (target-aware)
+    if subset_policy == "depth_classifier_v2_auto":
+        return {
+            "prompt_variant": "legacy",
+            "mimo_retry_mode": "none",
+            "segmentation_variant": segmentation_variant,
+            "routing_variant": "depth_classifier_v2",
+            "feature_source": "none",
+            "uses_benchmark_difficulty": False,
+            "uses_gt_features": False,
+            "protocol_ablation": "full",
+        }
+
+    depth_classifier_v2_ablation_policies = {
+        "depth_classifier_v2_no_blocker_first": "no_blocker_first",
+        "depth_classifier_v2_no_geometry_repair": "no_geometry_repair",
+        "depth_classifier_v2_no_id_repair": "no_id_repair",
+    }
+    if subset_policy in depth_classifier_v2_ablation_policies:
+        return {
+            "prompt_variant": "legacy",
+            "mimo_retry_mode": "none",
+            "segmentation_variant": segmentation_variant,
+            "routing_variant": "depth_classifier_v2",
+            "feature_source": "none",
+            "uses_benchmark_difficulty": False,
+            "uses_gt_features": False,
+            "protocol_ablation": depth_classifier_v2_ablation_policies[subset_policy],
+        }
+
     if subset_policy not in {
         "observed_best_v1",
         "original_protocol",
@@ -278,6 +346,14 @@ def _subset_config(
         "scene_complexity_vlm_no_blocker_first",
         "scene_complexity_vlm_no_geometry_repair",
         "scene_complexity_vlm_no_id_repair",
+        "depth_classifier_auto",
+        "depth_classifier_no_blocker_first",
+        "depth_classifier_no_geometry_repair",
+        "depth_classifier_no_id_repair",
+        "depth_classifier_v2_auto",
+        "depth_classifier_v2_no_blocker_first",
+        "depth_classifier_v2_no_geometry_repair",
+        "depth_classifier_v2_no_id_repair",
     }:
         raise ValueError(f"Unknown subset_policy: {subset_policy}")
 

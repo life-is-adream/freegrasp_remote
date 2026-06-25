@@ -217,6 +217,7 @@ def process_dataset(
                 route_guard_variant=route_guard_variant,
                 frozen_route_assessment=frozen_route_assessment,
                 evaluation_subset=evaluation_subset,
+                query_target_id=obj_id,
             )
             reasoning = prediction.get("reasoning", {}) if isinstance(prediction, dict) else {}
             rsr_correct = int(
