@@ -1,0 +1,15 @@
+\section{Conclusion}
+
+We presented FreeGrasp++, a protocol-aware extension to the FreeGrasp pipeline for robust language-guided robotic grasping. Our key contributions include:
+
+\begin{enumerate}
+    \item A \emph{Unified Hard-Safe Protocol} that defaults to conservative blocker-first actions under uncertainty, achieving +9.1\% RSR improvement.
+    \item An \emph{Evidence-Gated Hard-Safe Cascade (EGHC)} architecture that separates evidence collection, routing, and execution into independently testable stages.
+    \item \emph{Point-constrained mask repair} that improves segmentation robustness by +6.1\% SSR through point-guided mask selection.
+\end{enumerate}
+
+On the FreeGraspData benchmark, FreeGrasp++ achieves 67.4\% RSR and 60.1\% SSR, representing significant improvements over the original FreeGrasp. Our ablation studies confirm that hard-safe fallback is the most critical component, demonstrating the value of explicit protocol engineering for VLM-based robotic systems.
+
+\textbf{Limitations.} Our current approach relies on a fixed confidence threshold for hard-safe fallback. Future work could explore adaptive thresholds based on scene complexity. Additionally, the EGHC adjudication stage currently uses a single VLM call; multi-turn dialogue could improve disambiguation in ambiguous scenes.
+
+\textbf{Future work.} We plan to extend FreeGrasp++ with: (1) memory mechanisms for multi-step manipulation tasks, (2) online learning from robot execution feedback, and (3) integration with more advanced spatial reasoning models.

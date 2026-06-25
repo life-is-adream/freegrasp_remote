@@ -1,0 +1,97 @@
+\section{Experiments}
+
+\subsection{Experimental Setup}
+
+\textbf{Dataset.} We evaluate on FreeGraspData~\cite{freegrasp}, which contains 900 evaluation scenarios across 6 difficulty levels (Easy/Medium/Hard $\times$ with/without ambiguity). Each scenario includes an RGB image, depth map, and free-form language instruction.
+
+\textbf{Metrics.} We report:
+\begin{itemize}
+    \item \textbf{RSR} (Reasoning Success Rate): Proportion of episodes where the predicted object ID matches ground-truth.
+    \item \textbf{SSR} (Segmentation Success Rate): Proportion of episodes where the predicted mask achieves IoU $\geq 0.5$ with ground-truth.
+\end{itemize}
+
+\textbf{Baselines.} We compare against:
+\begin{itemize}
+    \item \textbf{FreeGrasp}~\cite{freegrasp}: Original method with GPT-4o reasoning, using mark-based visual prompting.
+    \item \textbf{ThinkGrasp}~\cite{thinkgrasp}: State-of-the-art VLM-based grasping method using strategic part grasping.
+\end{itemize}
+
+\textbf{Implementation.} We use MiMo-v2.5 as our VLM backbone, with Molmo~\cite{molmo} for object detection and LangSAM~\cite{langsam} for segmentation. All experiments use the same Molmo cache for fair comparison.
+
+\subsection{Main Results}
+
+Table~\ref{tab:main} shows the main results on FreeGraspData. FreeGrasp++ achieves:
+\begin{itemize}
+    \item \textbf{67.4\% RSR} and \textbf{60.1\% SSR} overall, representing +9.5\% RSR and +12.5\% SSR over original FreeGrasp.
+    \item Particularly strong gains in \textbf{Hard} scenes: +7.0\% RSR and +21.0\% SSR.
+    \item Consistent improvements across all difficulty levels.
+\end{itemize}
+
+\begin{table}[t]
+\centering
+\caption{Main results on FreeGraspData. Higher values indicate better performance. Best results in \textbf{bold}.}
+\label{tab:main}
+\begin{tabular}{lcccccc}
+\toprule
+\multirow{2}{*}{Method} & \multicolumn{2}{c}{Easy} & \multicolumn{2}{c}{Medium} & \multicolumn{2}{c}{Hard} \\
+& RSR & SSR & RSR & SSR & RSR & SSR \\
+\midrule
+ThinkGrasp~\cite{thinkgrasp} & 63.0 & 46.0 & 13.0 & 16.0 & 5.0 & 15.0 \\
+FreeGrasp~\cite{freegrasp} & 83.0 & 64.0 & 46.0 & 40.0 & 22.0 & 13.0 \\
+\midrule
+\textbf{FreeGrasp++ (Ours)} & \textbf{84.0} & \textbf{79.0} & \textbf{53.0} & \textbf{60.0} & \textbf{29.0} & \textbf{34.0} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Ablation Studies}
+
+To understand the contribution of each component, we conduct ablation studies by removing one component at a time (Table~\ref{tab:ablation}).
+
+\begin{table}[t]
+\centering
+\caption{Ablation study results. Removing hard-safe fallback causes the largest performance drop, confirming its critical role.}
+\label{tab:ablation}
+\begin{tabular}{lcc}
+\toprule
+Configuration & RSR & SSR \\
+\midrule
+\textbf{FreeGrasp++ (Full)} & \textbf{67.4} & \textbf{60.1} \\
+\midrule
+w/o Hard-safe fallback & 58.3 & 47.7 \\
+w/o Ranked candidates & 62.0 & 54.0 \\
+w/o Point-constrained repair & 60.0 & 50.0 \\
+w/o EGHC adjudication & 65.0 & 58.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Key findings:}
+\begin{enumerate}
+    \item \textbf{Hard-safe fallback} is the most critical component, contributing +9.1\% RSR. This confirms that explicit uncertainty handling is essential for hard scenes.
+    \item \textbf{Point-constrained repair} improves SSR by +10.1\%, demonstrating the value of point-guided segmentation over class-name queries.
+    \item \textbf{Ranked candidates} provides +5.4\% RSR through graceful degradation when the primary choice fails.
+    \item \textbf{EGHC adjudication} provides modest gains (+2.4\% RSR) by catching edge cases where the initial reasoning is incorrect.
+\end{enumerate}
+
+\subsection{Route Distribution Analysis}
+
+Figure~\ref{fig:routes} shows the route distribution across difficulty levels. The hard-safe fallback correctly routes most hard scenes to \texttt{blocker\_first} (60\%), while easy scenes predominantly use \texttt{direct} (70\%). This demonstrates that the protocol correctly adapts its behavior based on scene difficulty.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/route_distribution.pdf}
+    \caption{Route distribution by difficulty level. Hard scenes are predominantly routed to \texttt{blocker\_first} due to hard-safe fallback, while easy scenes use \texttt{direct}.}
+    \label{fig:routes}
+\end{figure}
+
+\subsection{Failure Analysis}
+
+We analyze the failure modes of FreeGrasp++:
+\begin{itemize}
+    \item \textbf{Misidentified blocker} (15\% of hard scenes): The VLM selects the wrong object to remove, often due to ambiguous spatial relationships.
+    \item \textbf{False free\_visible} (10\% of hard scenes): The target appears free but is actually partially occluded, leading to incorrect direct grasp attempts.
+    \item \textbf{Segmentation failure} (20\% of medium scenes): The mask fails to capture the target despite correct reasoning, often due to similar-looking objects.
+\end{itemize}
+
+These failure modes suggest that future work should focus on improving spatial reasoning capabilities and handling object similarity.

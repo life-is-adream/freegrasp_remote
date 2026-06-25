@@ -1,0 +1,26 @@
+\section{Introduction}
+
+Robotic grasping from free-form language instructions in cluttered bin-picking scenarios remains a significant challenge. While Vision-Language Models (VLMs) like GPT-4o demonstrate strong general reasoning capabilities, they struggle with visual spatial reasoning, particularly in understanding object occlusion and spatial relationships~\cite{freegrasp}.
+
+The original FreeGrasp~\cite{freegrasp} introduced a novel pipeline leveraging VLMs' world knowledge for zero-shot robotic grasping, using mark-based visual prompting with Molmo~\cite{molmo} for object detection and GPT-4o for grasp reasoning. However, it exhibits three key limitations:
+
+\begin{enumerate}
+    \item \textbf{Protocol rigidity}: A single reasoning protocol handles all difficulty levels, leading to failures in hard scenes where the target is heavily occluded.
+    \item \textbf{Uncertainty blindness}: The system lacks explicit uncertainty quantification, making it unable to distinguish confident decisions from uncertain ones.
+    \item \textbf{Segmentation fragility}: Object segmentation relies on class-name queries, which fail when objects are ambiguous or partially visible.
+\end{enumerate}
+
+We address these limitations with \textbf{FreeGrasp++}, which introduces three complementary innovations:
+
+\begin{itemize}
+    \item \textbf{Unified Hard-Safe Protocol}: A conservative reasoning protocol that defaults to blocker-first actions when uncertain, ensuring robust behavior in challenging scenes.
+    \item \textbf{Evidence-Gated Hard-Safe Cascade (EGHC)}: A two-stage reasoning pipeline with deterministic guard routing and conditional Qwen adjudication for disambiguation.
+    \item \textbf{Point-Constrained Mask Repair}: Segmentation that prioritizes masks containing the Molmo-detected point, with ranked-candidate fallback.
+\end{itemize}
+
+Our key contributions are:
+\begin{enumerate}
+    \item A protocol engineering framework for VLM-based robotic grasping that explicitly handles uncertainty through hard-safe fallback.
+    \item An evidence-gated cascade architecture that separates evidence collection, routing, and execution into independently testable stages.
+    \item Comprehensive experiments demonstrating 9.5\% absolute RSR improvement over the original FreeGrasp, with particularly strong gains in hard scenes.
+\end{enumerate}

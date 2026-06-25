@@ -1,0 +1,17 @@
+\section{Related Work}
+
+\subsection{VLM-based Robotic Grasping}
+
+Recent work has explored using Vision-Language Models for robotic grasping tasks. ThinkGrasp~\cite{thinkgrasp} uses GPT-4o for strategic part grasping in clutter, but struggles with hard scenes where objects are heavily occluded. FreeGrasp~\cite{freegrasp} introduced mark-based visual prompting with Molmo~\cite{molmo} for object detection and GPT-4o for grasp reasoning, achieving strong performance but with limited robustness in occluded scenes. MOKA~\cite{moka} proposes mark-based visual prompting for open-world robotic manipulation. Our work builds on these approaches by introducing protocol-aware reasoning that explicitly handles uncertainty through hard-safe fallback.
+
+\subsection{Protocol Engineering for LLMs}
+
+Protocol engineering has emerged as a key technique for improving LLM reliability. Chain-of-thought prompting~\cite{chainofthought} improves reasoning by decomposing complex tasks into intermediate steps. Set-of-Mark prompting~\cite{setofmark} enhances visual grounding by annotating objects with unique identifiers. Structured output formats enforce consistency and enable error detection. Our \emph{Unified Hard-Safe Protocol} extends this by incorporating domain-specific safety rules that default to conservative actions under uncertainty, which is particularly important for robotic manipulation where incorrect actions can be costly.
+
+\subsection{Spatial Reasoning for Robotics}
+
+Spatial reasoning is critical for robotic grasping in cluttered scenes. SpatialVLM~\cite{spatialvlm} endows vision-language models with spatial reasoning capabilities through training on spatial data. RoboPoint~\cite{robopoint} predicts spatial affordances for robotic manipulation. Grounding DINO~\cite{groundingdino} enables open-set object detection with language queries. Our approach leverages the VLM's implicit understanding of spatial relationships through structured reasoning prompts, avoiding the need for explicit 3D modeling or additional training.
+
+\subsection{Occlusion Handling in Robotic Manipulation}
+
+Understanding object occlusion is critical for robotic grasping in cluttered scenes. Prior work has explored occlusion-aware grasp planning~\cite{occlusion} and visual manipulation relationship networks~\cite{relationship}, but these approaches typically require explicit 3D reconstruction or relationship modeling. Our approach leverages the VLM's implicit understanding of occlusion through structured reasoning prompts and hard-safe fallback, avoiding the need for explicit 3D modeling while maintaining robustness in challenging scenes.

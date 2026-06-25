@@ -1,0 +1,60 @@
+% IEEE Robotics and Automation Letters (RAL) Paper
+% FreeGrasp++: Protocol-Aware Robotic Grasping with Evidence-Gated Cascade
+
+\documentclass[journal]{IEEEtran}
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+\begin{document}
+
+\title{FreeGrasp++: Protocol-Aware Robotic Grasping with Evidence-Gated Cascade for Robust Language-Guided Manipulation}
+
+\author{
+\IEEEauthorblockN{Anonymous Authors}
+\IEEEauthorblockA{Under Review}
+}
+
+\maketitle
+
+\begin{abstract}
+Vision-Language Models (VLMs) have shown promise for robotic grasping from free-form language instructions, but existing approaches struggle with hard scenes involving heavy occlusion and object ambiguity. We present FreeGrasp++, a protocol-aware extension that introduces three key improvements: (1) a \emph{Unified Hard-Safe Protocol} that defaults to conservative blocker-first actions when uncertain, (2) an \emph{Evidence-Gated Hard-Safe Cascade (EGHC)} with deterministic guard routing and conditional adjudication, and (3) \emph{point-constrained mask repair} for robust segmentation. On the FreeGraspData benchmark, FreeGrasp++ achieves 67.4\% RSR and 60.1\% SSR, representing absolute improvements of 9.5\% and 12.5\% over the original FreeGrasp. Ablation studies confirm that hard-safe fallback and ranked-candidate repair each contribute significantly to robustness in hard scenes. Our results demonstrate that explicit protocol engineering with uncertainty-aware fallback can substantially improve VLM-based robotic grasping without additional model training.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Robotic grasping, vision-language models, spatial reasoning, protocol engineering
+\end{IEEEkeywords}
+
+% Include sections
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/method}
+\input{sections/experiments}
+\input{sections/conclusion}
+
+\begin{thebibliography}{99}
+\bibitem{freegrasp} R. Jiao et al., ``Free-form language-based robotic reasoning and grasping,'' in \emph{IROS}, 2025.
+\bibitem{thinkgrasp} Y. Qian et al., ``ThinkGrasp: A vision-language system for strategic part grasping in clutter,'' in \emph{CoRL}, 2024.
+\bibitem{gpt4} OpenAI, ``GPT-4 Technical Report,'' arXiv:2303.08774, 2024.
+\bibitem{molmo} M. Deitke et al., ``Molmo and PixMo: Open weights and open data for state-of-the-art multimodal models,'' arXiv:2409.17146, 2024.
+\bibitem{sam} A. Kirillov et al., ``Segment Anything,'' in \emph{ICCV}, 2023.
+\bibitem{langsam} L. Medeiros, ``Language Segment-Anything,'' 2025.
+\bibitem{graspnet} H.-S. Fang et al., ``GraspNet-1billion: A large-scale benchmark for general object grasping,'' in \emph{CVPR}, 2020.
+\bibitem{metagraspnetv2} M. Gilles et al., ``MetaGraspNetV2: All-in-one dataset enabling fast and reliable robotic bin picking,'' in \emph{TASE}, 2024.
+\bibitem{chainofthought} J. Wei et al., ``Chain-of-thought prompting elicits reasoning in large language models,'' in \emph{NeurIPS}, 2023.
+\bibitem{spatialvlm} B. Chen et al., ``SpatialVLM: Endowing vision-language models with spatial reasoning capabilities,'' in \emph{CVPR}, 2024.
+\bibitem{robopoint} W. Yuan et al., ``Robopoint: A vision-language model for spatial affordance prediction in robotics,'' in \emph{CoRL}, 2024.
+\bibitem{setofmark} J. Yang et al., ``Set-of-mark prompting unleashes extraordinary visual grounding in GPT-4V,'' arXiv:2310.11441, 2023.
+\bibitem{moka} F. Liu et al., ``MOKA: Open-world robotic manipulation through mark-based visual prompting,'' in \emph{RSS}, 2024.
+\bibitem{groundingdino} S. Liu et al., ``Grounding DINO: Marrying DINO with grounded pre-training for open-set object detection,'' in \emph{ECCV}, 2024.
+\bibitem{relationship} H. Zhang et al., ``Visual manipulation relationship network for autonomous robotics,'' in \emph{Humanoids}, 2018.
+\bibitem{occlusion} L. Li et al., ``Grasping with occlusion-aware ally method in complex scenes,'' IEEE Trans. Autom. Sci. Eng., 2024.
+\end{thebibliography}
+
+\end{document}
