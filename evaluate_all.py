@@ -340,15 +340,16 @@ def _subset_config(
         "unified_hard_safe_no_id_repair": "no_id_repair",
     }
     if subset_policy in unified_hard_safe_ablation_policies:
+        ablation = unified_hard_safe_ablation_policies[subset_policy]
         return {
             "prompt_variant": "unified_hard_safe_v1_json",
             "mimo_retry_mode": "id_repair",
-            "segmentation_variant": "point_retry",
+            "segmentation_variant": "baseline" if ablation == "no_point_repair" else "point_retry",
             "routing_variant": "none",
             "feature_source": "none",
             "uses_benchmark_difficulty": False,
             "uses_gt_features": False,
-            "protocol_ablation": unified_hard_safe_ablation_policies[subset_policy],
+            "protocol_ablation": ablation,
         }
 
     if subset_policy not in {

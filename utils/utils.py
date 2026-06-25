@@ -69,6 +69,9 @@ VALID_PROTOCOL_ABLATIONS = {
     "no_blocker_first",
     "no_geometry_repair",
     "no_id_repair",
+    "no_hard_fallback",
+    "no_ranked_candidates",
+    "no_point_repair",
 }
 VALID_ROUTE_GUARD_VARIANTS = {
     "none",
@@ -219,7 +222,7 @@ def load_image_as_base64(image_path):
 
 
 
-def process_grasping_result(output, text):
+def process_grasping_result(output, text, protocol_ablation="full"):
     """
     Parses the grasping result output and extracts object ID and class name.
 
@@ -251,22 +254,27 @@ def process_grasping_result(output, text):
                 
                 # Force remove_blocker when uncertain
                 hard_fallback = False
-                if target_status in ("visible_but_blocked", "mostly_hidden", "uncertain"):
-                    hard_fallback = True
-                elif confidence < 0.70:
-                    hard_fallback = True
-                elif blocker_evidence and blocker_evidence != "none":
-                    hard_fallback = True
-                elif uncertainty:
-                    hard_fallback = True
+                if protocol_ablation != "no_hard_fallback":
+                    if target_status in ("visible_but_blocked", "mostly_hidden", "uncertain"):
+                        hard_fallback = True
+                    elif confidence < 0.70:
+                        hard_fallback = True
+                    elif blocker_evidence and blocker_evidence != "none":
+                        hard_fallback = True
+                    elif uncertainty:
+                        hard_fallback = True
                 
                 if hard_fallback:
                     result["hard_fallback_applied"] = True
                     result["pre_repair_action"] = data.get("action")
                     result["action"] = "remove_blocker"
-                    # Use ranked candidates if available
-                    if ranked_candidates:
+                    # Use ranked candidates if available (respect ablation)
+                    use_ranked = ranked_candidates and protocol_ablation != "no_ranked_candidates"
+                    if use_ranked:
                         result["selected_object_id"] = int(ranked_candidates[0])
+                    else:
+                        # Invalidate selected_object_id so downstream repair handles it
+                        result["selected_object_id"] = None
                 else:
                     result["hard_fallback_applied"] = False
                     result["action"] = data.get("action", "grasp_target")
@@ -2146,7 +2154,7 @@ def get_prediction_result(
                 )
                 output = _call_reasoning_model(messages, model_name, max_output_tokens)
                 reasoning["raw_outputs"].append(output)
-                result = process_grasping_result(output, text)
+                result = process_grasping_result(output, text, protocol_ablation)
         else:
             system_prompt = get_reasoning_system_prompt(active_prompt_variant)
             reasoning_input_text = _build_reasoning_input_text(
@@ -2159,7 +2167,7 @@ def get_prediction_result(
             messages = _make_reasoning_messages(system_prompt, reasoning_input_text, base64_image)
             output = _call_reasoning_model(messages, model_name, max_output_tokens)
             reasoning["raw_outputs"].append(output)
-            result = process_grasping_result(output, text)
+            result = process_grasping_result(output, text, protocol_ablation)
 
         prompt_variant = active_prompt_variant
         reasoning["prompt_variant"] = active_prompt_variant
@@ -2331,7 +2339,7 @@ def get_prediction_result(
             reasoning["raw_outputs"].append(retry_output)
             reasoning["retry_count"] = 1
             reasoning["retry_reason"] = retry_reason
-            retry_result = process_grasping_result(retry_output, text)
+            retry_result = process_grasping_result(retry_output, text, protocol_ablation)
             retry_has_valid_id = not _needs_id_repair(retry_result, visible_object_ids)
             if retry_has_valid_id or not initial_has_valid_id:
                 result = retry_result

@@ -264,6 +264,11 @@ def parse_args(argv=None):
             "scene_complexity_vlm_no_blocker_first",
             "scene_complexity_vlm_no_geometry_repair",
             "scene_complexity_vlm_no_id_repair",
+            "unified_hard_safe_v1",
+            "unified_hard_safe_no_hard_fallback",
+            "unified_hard_safe_no_ranked_candidates",
+            "unified_hard_safe_no_point_repair",
+            "unified_hard_safe_no_id_repair",
         ],
         default="none",
     )
