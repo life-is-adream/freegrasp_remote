@@ -232,6 +232,52 @@ def process_grasping_result(output, text):
     if json_match:
         try:
             data = json.loads(json_match.group(0))
+            # Unified hard-safe v1 schema
+            if "target_status" in data and "action" in data:
+                object_id = int(data.get("first_grasp_object_id", 0))
+                class_name = str(data.get("mask_query", text)).lower()
+                result = {
+                    "selected_object_id": object_id,
+                    "class_name": class_name,
+                    "mask_query": str(data.get("mask_query", text)).lower(),
+                    "reasoning_json": data,
+                }
+                # Hard-safe decision repair
+                target_status = data.get("target_status", "uncertain")
+                confidence = float(data.get("confidence", 0.0))
+                blocker_evidence = data.get("evidence", {}).get("blocker_evidence", "")
+                uncertainty = data.get("evidence", {}).get("uncertainty", [])
+                ranked_candidates = data.get("ranked_first_grasp_candidates", [])
+                
+                # Force remove_blocker when uncertain
+                hard_fallback = False
+                if target_status in ("visible_but_blocked", "mostly_hidden", "uncertain"):
+                    hard_fallback = True
+                elif confidence < 0.70:
+                    hard_fallback = True
+                elif blocker_evidence and blocker_evidence != "none":
+                    hard_fallback = True
+                elif uncertainty:
+                    hard_fallback = True
+                
+                if hard_fallback:
+                    result["hard_fallback_applied"] = True
+                    result["pre_repair_action"] = data.get("action")
+                    result["action"] = "remove_blocker"
+                    # Use ranked candidates if available
+                    if ranked_candidates:
+                        result["selected_object_id"] = int(ranked_candidates[0])
+                else:
+                    result["hard_fallback_applied"] = False
+                    result["action"] = data.get("action", "grasp_target")
+                
+                # ID repair: check if object_id is valid (caller will check)
+                result["pre_repair_first_grasp_object_id"] = object_id
+                result["ranked_first_grasp_candidates"] = ranked_candidates
+                result["target_status"] = target_status
+                result["confidence"] = confidence
+                return result
+            
             if isinstance(data.get("first_grasp_planning"), dict):
                 decision = data["first_grasp_planning"]
                 object_id = int(
