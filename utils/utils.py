@@ -53,6 +53,7 @@ VALID_SEGMENTATION_VARIANTS = {
     "baseline",
     "point_retry",
     "geometric_consistency",
+    "eghc_mask_repair_v1",
 }
 VALID_ROUTING_VARIANTS = {
     "none",
@@ -1754,13 +1755,13 @@ def _predict_langsam_mask(image_pil, query_candidates, goal_coor, segmentation_v
         goal_mask, mask_index = get_goal_mask_with_index(
             masks,
             goal_coor,
-            prefer_small_containing=segmentation_variant == "point_retry",
-            max_area_ratio=0.65 if segmentation_variant == "point_retry" else None,
+            prefer_small_containing=segmentation_variant in ("point_retry", "eghc_mask_repair_v1"),
+            max_area_ratio=0.65 if segmentation_variant in ("point_retry", "eghc_mask_repair_v1") else None,
         )
         attempt["selected_mask_index"] = mask_index
         contains_point = (
             goal_mask is not None
-            and segmentation_variant == "point_retry"
+            and segmentation_variant in ("point_retry", "eghc_mask_repair_v1")
             and mask_contains_point(goal_mask, goal_coor)
         )
         attempt["contains_molmo_point"] = contains_point
@@ -1779,7 +1780,7 @@ def _predict_langsam_mask(image_pil, query_candidates, goal_coor, segmentation_v
             "langsam_failure_reason": None,
         }
 
-        if segmentation_variant != "point_retry" or contains_point:
+        if segmentation_variant not in ("point_retry", "eghc_mask_repair_v1") or contains_point:
             return goal_mask, goal_bbox, metadata
 
         attempt["failure_reason"] = "mask_does_not_contain_molmo_point"
