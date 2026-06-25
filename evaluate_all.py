@@ -95,6 +95,11 @@ def parse_args(argv=None):
             "depth_classifier_v2_no_blocker_first",
             "depth_classifier_v2_no_geometry_repair",
             "depth_classifier_v2_no_id_repair",
+            "unified_hard_safe_v1",
+            "unified_hard_safe_no_hard_fallback",
+            "unified_hard_safe_no_ranked_candidates",
+            "unified_hard_safe_no_point_repair",
+            "unified_hard_safe_no_id_repair",
         ],
         default="none",
     )
@@ -315,6 +320,37 @@ def _subset_config(
             "protocol_ablation": depth_classifier_v2_ablation_policies[subset_policy],
         }
 
+    # Unified hard-safe v1 policies
+    if subset_policy == "unified_hard_safe_v1":
+        return {
+            "prompt_variant": "unified_hard_safe_v1_json",
+            "mimo_retry_mode": "id_repair",
+            "segmentation_variant": "point_retry",
+            "routing_variant": "none",
+            "feature_source": "none",
+            "uses_benchmark_difficulty": False,
+            "uses_gt_features": False,
+            "protocol_ablation": "full",
+        }
+
+    unified_hard_safe_ablation_policies = {
+        "unified_hard_safe_no_hard_fallback": "no_hard_fallback",
+        "unified_hard_safe_no_ranked_candidates": "no_ranked_candidates",
+        "unified_hard_safe_no_point_repair": "no_point_repair",
+        "unified_hard_safe_no_id_repair": "no_id_repair",
+    }
+    if subset_policy in unified_hard_safe_ablation_policies:
+        return {
+            "prompt_variant": "unified_hard_safe_v1_json",
+            "mimo_retry_mode": "id_repair",
+            "segmentation_variant": "point_retry",
+            "routing_variant": "none",
+            "feature_source": "none",
+            "uses_benchmark_difficulty": False,
+            "uses_gt_features": False,
+            "protocol_ablation": unified_hard_safe_ablation_policies[subset_policy],
+        }
+
     if subset_policy not in {
         "observed_best_v1",
         "original_protocol",
@@ -354,6 +390,11 @@ def _subset_config(
         "depth_classifier_v2_no_blocker_first",
         "depth_classifier_v2_no_geometry_repair",
         "depth_classifier_v2_no_id_repair",
+        "unified_hard_safe_v1",
+        "unified_hard_safe_no_hard_fallback",
+        "unified_hard_safe_no_ranked_candidates",
+        "unified_hard_safe_no_point_repair",
+        "unified_hard_safe_no_id_repair",
     }:
         raise ValueError(f"Unknown subset_policy: {subset_policy}")
 

@@ -83,6 +83,7 @@ ORACLE_FEATURE_PROMPTS = {
     "target_first_grasp_geometry_v8_json",
     "target_first_evidence_gate_v9_json",
     "hard_blocker_first_v10_json",
+    "unified_hard_safe_v1_json",
 }
 
 
@@ -586,6 +587,48 @@ def _get_target_first_evidence_gate_prompt():
     )
 
 
+def _get_unified_hard_safe_v1_prompt():
+    """Unified hard-safe protocol v1: single protocol for all queries.
+
+    Conservative: when uncertain, choose hardest safe action (remove_blocker).
+    """
+    return (
+        "You are a robotic bin-picking planner using a parallel gripper. "
+        "The image shows visible numeric object IDs. A text table lists each ID with its point location, "
+        "bounding box, and spatial features. "
+        "\n\n"
+        "Your task: choose the first object to grasp to eventually pick the requested target. "
+        "\n\n"
+        "Return exactly one JSON object with this schema, no markdown:\n"
+        '{'
+        '"target_object_id": <int or null>,'
+        '"target_status": "free_visible|visible_but_blocked|mostly_hidden|uncertain",'
+        '"first_grasp_object_id": <int>,'
+        '"action": "grasp_target|remove_blocker",'
+        '"ranked_first_grasp_candidates": [<int>, ...],'
+        '"mask_query": "<short noun phrase>",'
+        '"confidence": <0.0-1.0>,'
+        '"evidence": {'
+        '"target_evidence": "<short phrase>",'
+        '"blocker_evidence": "<short phrase or none>",'
+        '"uncertainty": []'
+        '}'
+        '}'
+        "\n\n"
+        "Rules:\n"
+        "- When the target is clearly visible and free (no object covers or blocks it), set action=grasp_target "
+        "and first_grasp_object_id=target_object_id.\n"
+        "- When the target is blocked, hidden, ambiguous, or uncertain, set action=remove_blocker "
+        "and choose one visible direct blocker as first_grasp_object_id.\n"
+        "- If uncertain about any aspect, default to remove_blocker (hard-safe).\n"
+        "- ranked_first_grasp_candidates must list all visible IDs in order of likelihood to succeed.\n"
+        "- first_grasp_object_id must be a visible numeric ID from the image.\n"
+        "- mask_query must be a short noun phrase (e.g. \"red box\"), not a relation sentence.\n"
+        "- mask_query must NOT include location words like left, right, top, bottom, behind, under.\n"
+        "- Return ONLY the JSON object."
+    )
+
+
 def _get_hard_blocker_first_prompt():
     return (
         "You are a hard-scene blocker-first grasp planner for robotic bin picking with a parallel gripper. "
@@ -706,6 +749,8 @@ def get_reasoning_system_prompt(prompt_variant="legacy"):
         return _get_target_first_evidence_gate_prompt()
     if prompt_variant == "hard_blocker_first_v10_json":
         return _get_hard_blocker_first_prompt()
+    if prompt_variant == "unified_hard_safe_v1_json":
+        return _get_unified_hard_safe_v1_prompt()
     if prompt_variant == "json":
         return (
             "You are a robotic system for bin picking, using a parallel gripper. "

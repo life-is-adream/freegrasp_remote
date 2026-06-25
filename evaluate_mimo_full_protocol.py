@@ -243,6 +243,11 @@ def run_full_protocol(args):
         "depth_classifier_v2_no_blocker_first",
         "depth_classifier_v2_no_geometry_repair",
         "depth_classifier_v2_no_id_repair",
+        "unified_hard_safe_v1",
+        "unified_hard_safe_no_hard_fallback",
+        "unified_hard_safe_no_ranked_candidates",
+        "unified_hard_safe_no_point_repair",
+        "unified_hard_safe_no_id_repair",
     }
     manifest = build_manifest(
         {
