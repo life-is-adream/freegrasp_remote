@@ -248,6 +248,7 @@ def run_full_protocol(args):
         "unified_hard_safe_no_ranked_candidates",
         "unified_hard_safe_no_point_repair",
         "unified_hard_safe_no_id_repair",
+        "eghc_guard_only_v1",
     }
     manifest = build_manifest(
         {

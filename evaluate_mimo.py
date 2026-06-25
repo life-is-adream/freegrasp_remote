@@ -269,6 +269,7 @@ def parse_args(argv=None):
             "unified_hard_safe_no_ranked_candidates",
             "unified_hard_safe_no_point_repair",
             "unified_hard_safe_no_id_repair",
+            "eghc_guard_only_v1",
         ],
         default="none",
     )

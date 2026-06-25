@@ -63,6 +63,7 @@ VALID_ROUTING_VARIANTS = {
     "scene_complexity_vlm",
     "depth_classifier",
     "depth_classifier_v2",
+    "evidence_gated_cascade",
 }
 VALID_PROTOCOL_ABLATIONS = {
     "full",
@@ -2028,6 +2029,35 @@ def get_prediction_result(
                 "depth_rank_ratio": sc.get("depth_rank_ratio", 0.0),
                 "n_close_in_front": sc.get("n_close_in_front", 0),
             }
+            reasoning["router_call_count"] = 0
+        elif routing_variant == "evidence_gated_cascade":
+            # EGHC guard-only mode: delegate to eghc_router
+            from utils.eghc_router import select_route
+            # Build a minimal assessment from parsed_data
+            assessment = {
+                "target_visibility": "uncertain",
+                "blocking_relations": [],
+                "recommended_route": "target_first",
+            }
+            packet = {"duplicate_mask_conflict": False}
+            decision = select_route(packet, assessment, challenger=None)
+            route_assessment = {
+                "route_mode": decision["selected_route"],
+                "route_confidence": 1.0,
+                "target_object_id": None,
+                "target_label": "target",
+                "ambiguity_evidence": [],
+                "blocker_evidence": [],
+                "scene_router_version": "eghc_guard_v1",
+                "scene_complexity": {
+                    "model": "eghc_guard_v1",
+                    "route_mode": decision["selected_route"],
+                    "selection_source": decision["selection_source"],
+                    "guard_reasons": decision["guard_reasons"],
+                    "requires_adjudication": decision["requires_adjudication"],
+                },
+            }
+            reasoning["scene_complexity_features"] = route_assessment["scene_complexity"]
             reasoning["router_call_count"] = 0
         elif routing_variant in {"vlm_two_stage", "predicted_geometry"}:
             router_text = format_router_input(

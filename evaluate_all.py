@@ -100,6 +100,7 @@ def parse_args(argv=None):
             "unified_hard_safe_no_ranked_candidates",
             "unified_hard_safe_no_point_repair",
             "unified_hard_safe_no_id_repair",
+            "eghc_guard_only_v1",
         ],
         default="none",
     )
@@ -352,6 +353,19 @@ def _subset_config(
             "protocol_ablation": ablation,
         }
 
+    # EGHC guard-only policy
+    if subset_policy == "eghc_guard_only_v1":
+        return {
+            "prompt_variant": "legacy",
+            "mimo_retry_mode": "none",
+            "segmentation_variant": "eghc_mask_repair_v1",
+            "routing_variant": "evidence_gated_cascade",
+            "feature_source": "deployable_predicted",
+            "uses_benchmark_difficulty": False,
+            "uses_gt_features": False,
+            "protocol_ablation": "full",
+        }
+
     if subset_policy not in {
         "observed_best_v1",
         "original_protocol",
@@ -396,6 +410,7 @@ def _subset_config(
         "unified_hard_safe_no_ranked_candidates",
         "unified_hard_safe_no_point_repair",
         "unified_hard_safe_no_id_repair",
+        "eghc_guard_only_v1",
     }:
         raise ValueError(f"Unknown subset_policy: {subset_policy}")
 
