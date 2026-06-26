@@ -11,6 +11,7 @@ import re
 
 QWEN_ADJUDICATOR_MODEL = "qwen3-vl-plus-2025-12-19"
 QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIMO_DASHSCOPE_PLACEHOLDER = "unused-by-evaluate-mimo"
 
 
 def should_trigger_adjudication(assessment, route_decision, plan, visible_ids):
@@ -156,6 +157,17 @@ def parse_adjudication_output(output, current_plan, visible_ids):
     }
 
 
+def resolve_qwen_api_key(env=None):
+    env = env or os.environ
+    qwen_key = env.get("QWEN_API_KEY")
+    if qwen_key:
+        return qwen_key
+    dashscope_key = env.get("DASHSCOPE_API_KEY")
+    if dashscope_key and dashscope_key != MIMO_DASHSCOPE_PLACEHOLDER:
+        return dashscope_key
+    return None
+
+
 def call_qwen_adjudicator(
     messages,
     *,
@@ -169,7 +181,7 @@ def call_qwen_adjudicator(
     and a DASHSCOPE_API_KEY or QWEN_API_KEY.
     """
     if client is None:
-        api_key = os.environ.get("DASHSCOPE_API_KEY") or os.environ.get("QWEN_API_KEY")
+        api_key = resolve_qwen_api_key()
         if not api_key:
             raise RuntimeError(
                 "Qwen adjudication requires DASHSCOPE_API_KEY or QWEN_API_KEY"

@@ -5,6 +5,7 @@ import unittest
 
 from utils.eghc_adjudicator import (
     parse_adjudication_output,
+    resolve_qwen_api_key,
     should_trigger_adjudication,
 )
 
@@ -93,6 +94,19 @@ class EGHCAdjudicationTest(unittest.TestCase):
         self.assertFalse(parsed["accepted"])
         self.assertEqual(parsed["plan"]["first_grasp_object_id"], 5)
         self.assertIn("invalid", parsed["reason"])
+
+    def test_qwen_key_preferred_over_mimo_dashscope_placeholder(self):
+        env = {
+            "DASHSCOPE_API_KEY": "unused-by-evaluate-mimo",
+            "QWEN_API_KEY": "real-qwen-key",
+        }
+
+        self.assertEqual(resolve_qwen_api_key(env), "real-qwen-key")
+
+    def test_dashscope_key_used_when_not_placeholder(self):
+        env = {"DASHSCOPE_API_KEY": "real-dashscope-key"}
+
+        self.assertEqual(resolve_qwen_api_key(env), "real-dashscope-key")
 
 
 if __name__ == "__main__":
