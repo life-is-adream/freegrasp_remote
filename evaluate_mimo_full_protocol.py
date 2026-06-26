@@ -161,6 +161,7 @@ def aggregate_run_results(
             "cache_sha256",
             "feature_source",
             "routing_variant",
+            "segmentation_variant",
             "uses_gt_features",
             "uses_benchmark_difficulty",
             "route_guard_variant",
@@ -220,6 +221,29 @@ def run_full_protocol(args):
             f"expected {args.expected_cache_sha256}, got {cache_sha256}"
         )
 
+    resolved_configs = {
+        subset_name: _subset_config(
+            subset_name,
+            prompt_variant="legacy_old",
+            mimo_retry_mode="id_repair",
+            segmentation_variant=args.segmentation_variant,
+            subset_policy=args.subset_policy,
+            routing_variant=args.routing_variant,
+            feature_source=args.feature_source,
+        )
+        for subset_name in DEFAULT_SUBSETS
+    }
+
+    def common_config_value(key, default=None):
+        values = {
+            config.get(key)
+            for config in resolved_configs.values()
+            if config.get(key) is not None
+        }
+        if len(values) == 1:
+            return values.pop()
+        return default
+
     uses_benchmark_difficulty = args.subset_policy not in {
         "none",
         "original_protocol",
@@ -250,6 +274,15 @@ def run_full_protocol(args):
         "unified_hard_safe_no_id_repair",
         "eghc_guard_only_v1",
     }
+    resolved_uses_benchmark_difficulty = any(
+        bool(config.get("uses_benchmark_difficulty", False))
+        for config in resolved_configs.values()
+    )
+    resolved_uses_gt_features = any(
+        bool(config.get("uses_gt_features", False))
+        or config.get("feature_source") == "oracle_feature"
+        for config in resolved_configs.values()
+    )
     manifest = build_manifest(
         {
             "model": args.model_name,
@@ -257,12 +290,24 @@ def run_full_protocol(args):
             "splits": list(args.splits),
             "subsets": list(DEFAULT_SUBSETS),
             "subset_policy": args.subset_policy,
-            "routing_variant": args.routing_variant,
-            "segmentation_variant": args.segmentation_variant,
-            "feature_source": args.feature_source,
+            "routing_variant": common_config_value(
+                "routing_variant",
+                args.routing_variant,
+            ),
+            "segmentation_variant": common_config_value(
+                "segmentation_variant",
+                args.segmentation_variant,
+            ),
+            "feature_source": common_config_value(
+                "feature_source",
+                args.feature_source,
+            ),
             "cache_sha256": cache_sha256,
-            "uses_gt_features": args.feature_source == "oracle_feature",
-            "uses_benchmark_difficulty": uses_benchmark_difficulty,
+            "uses_gt_features": resolved_uses_gt_features,
+            "uses_benchmark_difficulty": (
+                uses_benchmark_difficulty
+                or resolved_uses_benchmark_difficulty
+            ),
             **guard_provenance(args.route_guard_variant),
         },
         command="evaluate_mimo_full_protocol.py",
@@ -289,15 +334,7 @@ def run_full_protocol(args):
         split_scores = {}
 
         for subset_name in DEFAULT_SUBSETS:
-            config = _subset_config(
-                subset_name,
-                prompt_variant="legacy_old",
-                mimo_retry_mode="id_repair",
-                segmentation_variant=args.segmentation_variant,
-                subset_policy=args.subset_policy,
-                routing_variant=args.routing_variant,
-                feature_source=args.feature_source,
-            )
+            config = resolved_configs[subset_name]
             split_scores[subset_name] = evaluate_subset(
                 subset_name,
                 selected_split=selected_split,

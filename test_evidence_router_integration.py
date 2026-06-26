@@ -66,6 +66,8 @@ class EvidenceRouterIntegrationTest(unittest.TestCase):
         parsed_rows=None,
         predicted_geometry=None,
         frozen_route_assessment=None,
+        routing_variant="predicted_geometry",
+        feature_source="predicted",
     ):
         outputs = [router_output]
         if reasoning_output is not None:
@@ -122,13 +124,137 @@ class EvidenceRouterIntegrationTest(unittest.TestCase):
                     return_metadata=True,
                     model_name="mimo-v2.5",
                     max_output_tokens=1024,
-                    routing_variant="predicted_geometry",
-                    feature_source="predicted",
+                    routing_variant=routing_variant,
+                    feature_source=feature_source,
                     protocol_ablation=protocol_ablation,
                     route_guard_variant=route_guard_variant,
                     frozen_route_assessment=frozen_route_assessment,
                 )
         return result, fake_client.chat.completions.calls
+
+    def test_eghc_router_call_can_dispatch_blocker_first(self):
+        router_output = json.dumps(
+            {
+                "target_candidates": [
+                    {
+                        "object_id": 3,
+                        "identity_score": 0.93,
+                        "label": "red block",
+                    }
+                ],
+                "target_visibility": "visible_but_blocked",
+                "blocking_relations": [
+                    {
+                        "blocker_id": 4,
+                        "relation": "overlap",
+                        "evidence": "object 4 covers the target contact region",
+                    }
+                ],
+                "recommended_route": "blocker_first",
+                "route_confidence": 0.91,
+            }
+        )
+        reasoning_output = json.dumps(
+            {
+                "target_resolution": {"target_object_id": 3},
+                "first_grasp_planning": {
+                    "first_grasp_object_id": 4,
+                    "first_grasp_label": "blue block",
+                    "mask_query": "blue block",
+                },
+            }
+        )
+
+        with patch(
+            "utils.eghc_adjudicator.call_qwen_adjudicator",
+            return_value=json.dumps({"decision": "keep", "reason": "test_keep"}),
+        ):
+            result, calls = self._run_prediction(
+                router_output,
+                reasoning_output,
+                routing_variant="evidence_gated_cascade",
+                feature_source="deployable_predicted",
+            )
+
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(result["reasoning"]["router_call_count"], 1)
+        self.assertEqual(result["reasoning"]["route_mode"], "blocker_first")
+        self.assertEqual(result["reasoning"]["target_object_id"], 3)
+        self.assertEqual(result["reasoning"]["selected_object_id"], 4)
+        self.assertIn(
+            "evidence-gated",
+            calls[0]["messages"][0]["content"].lower(),
+        )
+        self.assertIn(
+            "blocker-first",
+            calls[1]["messages"][0]["content"].lower(),
+        )
+
+    def test_eghc_qwen_adjudication_can_replace_blocker_plan(self):
+        router_output = json.dumps(
+            {
+                "target_candidates": [
+                    {
+                        "object_id": 3,
+                        "identity_score": 0.93,
+                        "label": "red block",
+                    }
+                ],
+                "target_visibility": "visible_but_blocked",
+                "blocking_relations": [
+                    {
+                        "blocker_id": 4,
+                        "relation": "overlap",
+                        "evidence": "object 4 appears near the target",
+                    }
+                ],
+                "recommended_route": "blocker_first",
+                "route_confidence": 0.91,
+            }
+        )
+        reasoning_output = json.dumps(
+            {
+                "target_resolution": {"target_object_id": 3},
+                "first_grasp_planning": {
+                    "first_grasp_object_id": 4,
+                    "first_grasp_label": "blue block",
+                    "mask_query": "blue block",
+                },
+            }
+        )
+        qwen_output = json.dumps(
+            {
+                "decision": "replace",
+                "first_grasp_object_id": 5,
+                "first_grasp_label": "green cup",
+                "mask_query": "green cup",
+                "confidence": 0.86,
+                "reason": "object 5 is the direct covering blocker",
+            }
+        )
+
+        with patch(
+            "utils.eghc_adjudicator.call_qwen_adjudicator",
+            return_value=qwen_output,
+        ) as qwen_call:
+            result, calls = self._run_prediction(
+                router_output,
+                reasoning_output,
+                parsed_rows="3 0 0 101\n4 1 1 102\n5 2 2 103\n",
+                routing_variant="evidence_gated_cascade",
+                feature_source="deployable_predicted",
+            )
+
+        self.assertEqual(len(calls), 2)
+        qwen_call.assert_called_once()
+        self.assertEqual(result["reasoning"]["route_mode"], "blocker_first")
+        self.assertEqual(result["reasoning"]["selected_object_id"], 5)
+        self.assertEqual(result["reasoning"]["mask_query"], "green cup")
+        self.assertTrue(result["reasoning"]["qwen_adjudication"]["accepted"])
+        self.assertEqual(
+            result["reasoning"]["qwen_adjudication_model"],
+            "qwen3-vl-plus-2025-12-19",
+        )
 
     def test_frozen_blocker_route_bypasses_router_call(self):
         reasoning_output = json.dumps(

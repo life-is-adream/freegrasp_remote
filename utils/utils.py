@@ -2032,34 +2032,60 @@ def get_prediction_result(
             }
             reasoning["router_call_count"] = 0
         elif routing_variant == "evidence_gated_cascade":
-            # EGHC guard-only mode: delegate to eghc_router
-            from utils.eghc_router import select_route
-            # Build a minimal assessment from parsed_data
-            assessment = {
-                "target_visibility": "uncertain",
-                "blocking_relations": [],
-                "recommended_route": "target_first",
-            }
+            from utils.eghc_router import (
+                eghc_router_prompt,
+                format_eghc_router_input,
+                parse_eghc_assessment,
+                select_route,
+            )
+
+            router_messages = _make_reasoning_messages(
+                eghc_router_prompt(),
+                format_eghc_router_input(input_text, parsed_data),
+                base64_image,
+            )
+            router_output = _call_reasoning_model(
+                router_messages,
+                model_name,
+                min(max_output_tokens, 512),
+            )
+            reasoning["raw_outputs"].append(router_output)
+            reasoning["router_raw_output"] = router_output
+            reasoning["router_call_count"] = 1
+            assessment = parse_eghc_assessment(
+                router_output,
+                visible_object_ids,
+                target_label=text,
+            )
             packet = {"duplicate_mask_conflict": False}
             decision = select_route(packet, assessment, challenger=None)
             route_assessment = {
                 "route_mode": decision["selected_route"],
-                "route_confidence": 1.0,
-                "target_object_id": None,
-                "target_label": "target",
-                "ambiguity_evidence": [],
-                "blocker_evidence": [],
+                "pre_guard_route_mode": assessment.get("recommended_route"),
+                "route_confidence": assessment.get("route_confidence", 0.0),
+                "target_object_id": assessment.get("target_object_id"),
+                "target_label": assessment.get("target_label", text),
+                "ambiguity_evidence": assessment.get("ambiguity_evidence", []),
+                "blocker_evidence": assessment.get("blocker_evidence", []),
+                "route_guard_applied": (
+                    decision["selected_route"]
+                    != assessment.get("recommended_route")
+                ),
+                "route_guard_reasons": decision["guard_reasons"],
                 "scene_router_version": "eghc_guard_v1",
                 "scene_complexity": {
                     "model": "eghc_guard_v1",
                     "route_mode": decision["selected_route"],
+                    "recommended_route": assessment.get("recommended_route"),
+                    "target_visibility": assessment.get("target_visibility"),
+                    "blocking_relations": assessment.get("blocking_relations", []),
+                    "target_candidates": assessment.get("target_candidates", []),
                     "selection_source": decision["selection_source"],
                     "guard_reasons": decision["guard_reasons"],
                     "requires_adjudication": decision["requires_adjudication"],
                 },
             }
             reasoning["scene_complexity_features"] = route_assessment["scene_complexity"]
-            reasoning["router_call_count"] = 0
         elif routing_variant in {"vlm_two_stage", "predicted_geometry"}:
             router_text = format_router_input(
                 input_text,
@@ -2199,6 +2225,67 @@ def get_prediction_result(
             output = _call_reasoning_model(messages, model_name, max_output_tokens)
             reasoning["raw_outputs"].append(output)
             result = process_grasping_result(output, text, protocol_ablation)
+
+        if routing_variant == "evidence_gated_cascade" and route_assessment is not None:
+            from utils.eghc_adjudicator import (
+                QWEN_ADJUDICATOR_MODEL,
+                adjudication_prompt,
+                call_qwen_adjudicator,
+                format_adjudication_input,
+                parse_adjudication_output,
+                should_trigger_adjudication,
+            )
+
+            plan = {
+                "first_grasp_object_id": result.get("selected_object_id"),
+                "first_grasp_label": result.get("class_name", ""),
+                "mask_query": result.get("mask_query", result.get("class_name", "")),
+                "confidence": result.get("confidence", 1.0),
+            }
+            route_decision = {"selected_route": route_assessment["route_mode"]}
+            if should_trigger_adjudication(
+                assessment=route_assessment,
+                route_decision=route_decision,
+                plan=plan,
+                visible_ids=set(visible_object_ids),
+            ):
+                qwen_messages = _make_reasoning_messages(
+                    adjudication_prompt(),
+                    format_adjudication_input(
+                        input_text,
+                        route_assessment,
+                        route_decision,
+                        plan,
+                        set(visible_object_ids),
+                    ),
+                    base64_image,
+                )
+                qwen_output = call_qwen_adjudicator(
+                    qwen_messages,
+                    max_output_tokens=min(max_output_tokens, 512),
+                )
+                reasoning["raw_outputs"].append(qwen_output)
+                adjudication = parse_adjudication_output(
+                    qwen_output,
+                    plan,
+                    visible_ids=set(visible_object_ids),
+                )
+                reasoning["qwen_adjudication_raw_output"] = qwen_output
+                reasoning["qwen_adjudication"] = adjudication
+                reasoning["qwen_adjudication_model"] = QWEN_ADJUDICATOR_MODEL
+                if adjudication["accepted"]:
+                    adjudicated_plan = adjudication["plan"]
+                    result["selected_object_id"] = adjudicated_plan[
+                        "first_grasp_object_id"
+                    ]
+                    result["class_name"] = adjudicated_plan.get(
+                        "first_grasp_label",
+                        adjudicated_plan.get("mask_query", result.get("class_name", "")),
+                    ).lower()
+                    result["mask_query"] = adjudicated_plan.get(
+                        "mask_query",
+                        result["class_name"],
+                    ).lower()
 
         prompt_variant = active_prompt_variant
         reasoning["prompt_variant"] = active_prompt_variant

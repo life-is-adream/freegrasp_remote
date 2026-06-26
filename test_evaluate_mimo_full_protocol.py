@@ -195,6 +195,94 @@ class EvaluateMimoFullProtocolTest(unittest.TestCase):
         self.assertTrue(all(call[1]["prepare_molmo"] is False for call in calls["evaluate"]))
         self.assertEqual(summary["molmo_cache_policy"], "fresh_once")
 
+    def test_manifest_uses_resolved_subset_policy_config(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            molmo_dir = tmpdir / "molmo_output"
+            molmo_dir.mkdir()
+            run_root = tmpdir / "run"
+            calls = {"evaluate": []}
+
+            evaluate_common_stub = types.ModuleType("evaluate_common")
+            evaluate_common_stub.NPZ_DIR = "data/npz_file"
+            evaluate_common_stub.MOLMO_OUTPUT_DIR = str(molmo_dir)
+
+            def fake_evaluate_subset(subset_name, **kwargs):
+                calls["evaluate"].append((subset_name, kwargs))
+                output_dir = Path(kwargs["output_dir"])
+                output_dir.mkdir(parents=True, exist_ok=True)
+                (output_dir / f"out_{subset_name}.json").write_text(
+                    json.dumps([[1, 1, "a", 1, 1]])
+                )
+                (output_dir / f"details_{subset_name}.json").write_text(
+                    json.dumps([{"reasoning": kwargs}])
+                )
+                return {"ssr": 1.0, "rsr": 1.0}
+
+            evaluate_common_stub.evaluate_subset = fake_evaluate_subset
+
+            evaluate_all_stub = types.ModuleType("evaluate_all")
+            evaluate_all_stub._subset_config = lambda *args, **kwargs: {
+                "prompt_variant": "legacy",
+                "mimo_retry_mode": "none",
+                "segmentation_variant": "eghc_mask_repair_v1",
+                "routing_variant": "evidence_gated_cascade",
+                "feature_source": "deployable_predicted",
+                "uses_gt_features": False,
+                "uses_benchmark_difficulty": False,
+                "protocol_ablation": "full",
+            }
+
+            evaluate_mimo_stub = types.ModuleType("evaluate_mimo")
+            evaluate_mimo_stub.create_mimo_client = lambda **kwargs: object()
+            evaluate_mimo_stub.validate_mimo_supports_image_input = lambda *args, **kwargs: None
+            evaluate_mimo_stub.patch_freegrasp_client = lambda *args, **kwargs: None
+
+            module_names = ["evaluate_common", "evaluate_all", "evaluate_mimo"]
+            originals = {name: sys.modules.get(name) for name in module_names}
+            sys.modules["evaluate_common"] = evaluate_common_stub
+            sys.modules["evaluate_all"] = evaluate_all_stub
+            sys.modules["evaluate_mimo"] = evaluate_mimo_stub
+
+            def restore_modules():
+                for name, module in originals.items():
+                    if module is None:
+                        sys.modules.pop(name, None)
+                    else:
+                        sys.modules[name] = module
+
+            self.addCleanup(restore_modules)
+
+            args = evaluate_mimo_full_protocol.parse_args(
+                [
+                    "--subset-policy",
+                    "eghc_guard_only_v1",
+                    "--splits",
+                    "0",
+                    "--run-root",
+                    str(run_root),
+                    "--no-resume",
+                    "--skip-mimo-preflight",
+                ]
+            )
+            summary = evaluate_mimo_full_protocol.run_full_protocol(args)
+            manifest = json.loads((run_root / "run_manifest.json").read_text())
+
+        self.assertEqual(manifest["routing_variant"], "evidence_gated_cascade")
+        self.assertEqual(manifest["segmentation_variant"], "eghc_mask_repair_v1")
+        self.assertEqual(manifest["feature_source"], "deployable_predicted")
+        self.assertEqual(summary["routing_variant"], "evidence_gated_cascade")
+        self.assertEqual(summary["segmentation_variant"], "eghc_mask_repair_v1")
+        self.assertEqual(summary["feature_source"], "deployable_predicted")
+        self.assertTrue(
+            all(
+                call[1]["routing_variant"] == "evidence_gated_cascade"
+                and call[1]["segmentation_variant"] == "eghc_mask_repair_v1"
+                and call[1]["feature_source"] == "deployable_predicted"
+                for call in calls["evaluate"]
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
