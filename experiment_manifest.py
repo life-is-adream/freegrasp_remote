@@ -11,6 +11,11 @@ import subprocess
 def guard_provenance(route_guard_variant):
     if route_guard_variant == "none":
         return {"route_guard_variant": "none"}
+    if route_guard_variant == "eghc_consensus_v1":
+        return {
+            "route_guard_variant": route_guard_variant,
+            "guard_code_version": "eghc-consensus-v1",
+        }
     if route_guard_variant == "conservative_v1":
         from route_guard_config import (
             CONSERVATIVE_GUARD_VERSION,

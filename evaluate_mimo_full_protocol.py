@@ -46,7 +46,7 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--route-guard-variant",
-        choices=["none", "conservative_v1", "target_evidence_v2"],
+        choices=["none", "conservative_v1", "target_evidence_v2", "eghc_consensus_v1"],
         default="none",
     )
     parser.add_argument("--run-root", default=DEFAULT_RUN_ROOT)
@@ -273,6 +273,7 @@ def run_full_protocol(args):
         "unified_hard_safe_no_point_repair",
         "unified_hard_safe_no_id_repair",
         "eghc_guard_only_v1",
+        "eghc_consensus_v1",
     }
     resolved_uses_benchmark_difficulty = any(
         bool(config.get("uses_benchmark_difficulty", False))
@@ -308,7 +309,12 @@ def run_full_protocol(args):
                 uses_benchmark_difficulty
                 or resolved_uses_benchmark_difficulty
             ),
-            **guard_provenance(args.route_guard_variant),
+            **guard_provenance(
+                common_config_value(
+                    "route_guard_variant",
+                    args.route_guard_variant,
+                )
+            ),
         },
         command="evaluate_mimo_full_protocol.py",
     )
@@ -349,7 +355,10 @@ def run_full_protocol(args):
                 routing_variant=config.get("routing_variant", "none"),
                 feature_source=config.get("feature_source", "none"),
                 protocol_ablation=config.get("protocol_ablation", "full"),
-                route_guard_variant=args.route_guard_variant,
+                route_guard_variant=config.get(
+                    "route_guard_variant",
+                    args.route_guard_variant,
+                ),
             )
 
         scores_by_split[selected_split] = split_scores

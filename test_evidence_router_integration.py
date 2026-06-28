@@ -12,6 +12,7 @@ import pandas as pd
 from PIL import Image
 
 import test_utils_output_limit as support
+from utils.eghc_adjudicator import QWEN_ADJUDICATOR_MODEL
 
 
 class EvidenceRouterIntegrationTest(unittest.TestCase):
@@ -253,7 +254,7 @@ class EvidenceRouterIntegrationTest(unittest.TestCase):
         self.assertTrue(result["reasoning"]["qwen_adjudication"]["accepted"])
         self.assertEqual(
             result["reasoning"]["qwen_adjudication_model"],
-            "qwen3-vl-plus-2025-12-19",
+            QWEN_ADJUDICATOR_MODEL,
         )
 
     def test_frozen_blocker_route_bypasses_router_call(self):

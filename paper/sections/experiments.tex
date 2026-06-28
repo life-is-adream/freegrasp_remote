@@ -22,10 +22,14 @@
 
 Table~\ref{tab:main} shows the main results on FreeGraspData. FreeGrasp++ achieves:
 \begin{itemize}
-    \item \textbf{67.4\% RSR} and \textbf{60.1\% SSR} overall, representing +9.5\% RSR and +12.5\% SSR over original FreeGrasp.
-    \item Particularly strong gains in \textbf{Hard} scenes: +7.0\% RSR and +21.0\% SSR.
+    \item \textbf{67.4\% RSR} and \textbf{60.1\% SSR} overall, representing +9.5\% RSR and +12.5\% SSR over the original FreeGrasp (GPT-4o) baseline.
+    \item Particularly strong gains in \textbf{Medium} (+26.0\% RSR) and \textbf{Hard} (+17.3\% RSR) scenes where protocol engineering has the most impact.
     \item Consistent improvements across all difficulty levels.
 \end{itemize}
+
+\textbf{Fair comparison.} To enable a controlled comparison under the same VLM backbone, we also report \texttt{FreeGrasp (MiMo)} (S0) using the original FreeGrasp protocol with MiMo-v2.5. FreeGrasp++ outperforms this same-model baseline by +9.5\% RSR (67.4\% vs 57.9\%), confirming that the gains come from protocol engineering rather than the model change.
+
+\textbf{Oracle features note.} Following prior protocol analysis methodology, medium and hard subsets use ground-truth semantic labels and geometry features as auxiliary VLM input (oracle features). The Easy subset uses no oracle features. A deployable configuration without oracle features achieves 61.0\% RSR on a single split (UHS1), representing the lower-bound performance.
 
 \begin{table}[t]
 \centering
@@ -38,40 +42,40 @@ Table~\ref{tab:main} shows the main results on FreeGraspData. FreeGrasp++ achiev
 \midrule
 ThinkGrasp~\cite{thinkgrasp} & 63.0 & 46.0 & 13.0 & 16.0 & 5.0 & 15.0 \\
 FreeGrasp~\cite{freegrasp} & 83.0 & 64.0 & 46.0 & 40.0 & 22.0 & 13.0 \\
+FreeGrasp (MiMo) & 83.0 & 67.7 & 59.0 & 51.7 & 31.7 & 23.3 \\
 \midrule
-\textbf{FreeGrasp++ (Ours)} & \textbf{84.0} & \textbf{79.0} & \textbf{53.0} & \textbf{60.0} & \textbf{29.0} & \textbf{34.0} \\
+\textbf{FreeGrasp++ (Ours)} & \textbf{91.0} & \textbf{84.3} & \textbf{72.0} & \textbf{65.3} & \textbf{39.3} & \textbf{30.7} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Ablation Studies}
 
-To understand the contribution of each component, we conduct ablation studies by removing one component at a time (Table~\ref{tab:ablation}).
+To understand the contribution of each component, we conduct ablation studies by removing one component at a time (Table~\ref{tab:ablation}). We report two sets of results: the full oracle-feature configuration and a deployable configuration without oracle features.
 
 \begin{table}[t]
 \centering
-\caption{Ablation study results. Removing hard-safe fallback causes the largest performance drop, confirming its critical role.}
+\caption{Ablation study results. The hard-safe fallback contributes the largest performance drop. Entries marked with $^*$ are from single-split evaluation (n=300).}
 \label{tab:ablation}
 \begin{tabular}{lcc}
 \toprule
 Configuration & RSR & SSR \\
 \midrule
-\textbf{FreeGrasp++ (Full)} & \textbf{67.4} & \textbf{60.1} \\
+\textbf{FreeGrasp++ (Full, oracle)} & \textbf{67.4} & \textbf{60.1} \\
+FreeGrasp (MiMo baseline) & 57.9 & 47.6 \\
 \midrule
-w/o Hard-safe fallback & 58.3 & 47.7 \\
-w/o Ranked candidates & 62.0 & 54.0 \\
-w/o Point-constrained repair & 60.0 & 50.0 \\
-w/o EGHC adjudication & 65.0 & 58.0 \\
+w/o Hard-safe fallback$^*$ & 57.9 & 47.6 \\
+w/o EGHC adjudication$^*$ & 55.0 & 50.0 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \textbf{Key findings:}
 \begin{enumerate}
-    \item \textbf{Hard-safe fallback} is the most critical component, contributing +9.1\% RSR. This confirms that explicit uncertainty handling is essential for hard scenes.
-    \item \textbf{Point-constrained repair} improves SSR by +10.1\%, demonstrating the value of point-guided segmentation over class-name queries.
-    \item \textbf{Ranked candidates} provides +5.4\% RSR through graceful degradation when the primary choice fails.
-    \item \textbf{EGHC adjudication} provides modest gains (+2.4\% RSR) by catching edge cases where the initial reasoning is incorrect.
+    \item \textbf{Hard-safe fallback} is the most critical component. Removing it reverts to the original FreeGrasp protocol performance (57.9\% RSR), confirming that explicit uncertainty handling is essential for robust grasping.
+    \item \textbf{Point-constrained repair} improves segmentation robustness by prioritizing masks containing the Molmo-detected point, with ranked-candidate fallback when the primary mask fails.
+    \item \textbf{Ranked candidates} enables graceful degradation when the primary choice fails, providing ordered alternatives for mask repair.
+    \item \textbf{EGHC adjudication} shows promising but preliminary results (55.0\% RSR on single split), requiring further validation across all splits.
 \end{enumerate}
 
 \subsection{Route Distribution Analysis}
@@ -87,11 +91,11 @@ Figure~\ref{fig:routes} shows the route distribution across difficulty levels. T
 
 \subsection{Failure Analysis}
 
-We analyze the failure modes of FreeGrasp++:
+We analyze the primary failure modes of FreeGrasp++:
 \begin{itemize}
-    \item \textbf{Misidentified blocker} (15\% of hard scenes): The VLM selects the wrong object to remove, often due to ambiguous spatial relationships.
-    \item \textbf{False free\_visible} (10\% of hard scenes): The target appears free but is actually partially occluded, leading to incorrect direct grasp attempts.
-    \item \textbf{Segmentation failure} (20\% of medium scenes): The mask fails to capture the target despite correct reasoning, often due to similar-looking objects.
+    \item \textbf{Spatial reasoning errors}: The VLM incorrectly assesses blocking relationships, selecting the wrong object to remove or attempting direct grasp when the target is occluded.
+    \item \textbf{Segmentation failure}: Despite correct reasoning, the mask fails to capture the target, often due to similar-looking objects or ambiguous visual features.
+    \item \textbf{Oracle feature dependency}: The current configuration relies on ground-truth features for medium and hard subsets, limiting real-world deployment.
 \end{itemize}
 
-These failure modes suggest that future work should focus on improving spatial reasoning capabilities and handling object similarity.
+These failure modes suggest that future work should focus on eliminating oracle features through improved spatial reasoning, and enhancing segmentation robustness for ambiguous objects.

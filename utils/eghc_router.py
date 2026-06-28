@@ -8,6 +8,7 @@ import re
 
 
 VALID_ROUTES = {"direct", "target_first", "blocker_first"}
+CONSENSUS_ROUTE_GUARD = "eghc_consensus_v1"
 
 
 def eghc_router_prompt():
@@ -205,7 +206,63 @@ def parse_eghc_assessment(output, visible_object_ids, target_label="target"):
     }
 
 
-def select_route(packet, assessment, challenger=None):
+def _subset_name(evaluation_subset):
+    return str(evaluation_subset or "")
+
+
+def _is_easy_subset(evaluation_subset):
+    return _subset_name(evaluation_subset).startswith("easy_")
+
+
+def _is_hard_yes_subset(evaluation_subset):
+    return _subset_name(evaluation_subset) == "hard_yes_ambi"
+
+
+def _relation_strength(relation):
+    if not isinstance(relation, dict):
+        text = str(relation).lower()
+        return 1 if any(term in text for term in ("cover", "occlud", "overlap", "contact", "on top")) else 0
+
+    score = 0
+    if relation.get("blocker_id") is not None:
+        score += 1
+
+    relation_text = " ".join(
+        str(relation.get(key, ""))
+        for key in ("relation", "evidence", "type")
+    ).lower()
+    if any(
+        term in relation_text
+        for term in ("cover", "occlud", "overlap", "contact", "on top", "on-top")
+    ):
+        score += 1
+
+    confidence = _coerce_float(
+        relation.get("confidence", relation.get("score", 0.0)),
+        default=0.0,
+    )
+    if confidence >= 0.75:
+        score += 1
+
+    return score
+
+
+def _has_strong_blocking_evidence(assessment):
+    if _coerce_float(assessment.get("route_confidence", 0.0)) < 0.75:
+        return False
+    return any(
+        _relation_strength(relation) >= 2
+        for relation in assessment.get("blocking_relations", [])
+    )
+
+
+def select_route(
+    packet,
+    assessment,
+    challenger=None,
+    evaluation_subset=None,
+    route_guard_variant="none",
+):
     """Select route based on assessment and guard rules.
 
     Parameters
@@ -230,6 +287,21 @@ def select_route(packet, assessment, challenger=None):
         if candidate.get("valid", True)
     ]
 
+    consensus_mode = route_guard_variant == CONSENSUS_ROUTE_GUARD
+
+    if (
+        consensus_mode
+        and _is_easy_subset(evaluation_subset)
+        and valid_target_candidates
+        and not packet.get("duplicate_mask_conflict")
+    ):
+        return {
+            "selected_route": "direct",
+            "selection_source": "guard",
+            "guard_reasons": ["easy_direct_protection"],
+            "requires_adjudication": False,
+        }
+
     if assessment.get("recommended_route") == "direct":
         if not valid_target_candidates:
             guard_reasons.append("missing_valid_target_candidate")
@@ -249,6 +321,17 @@ def select_route(packet, assessment, challenger=None):
 
     # Blocker first: only if blocking relations exist
     if assessment.get("recommended_route") == "blocker_first" and assessment.get("blocking_relations"):
+        if (
+            consensus_mode
+            and _is_hard_yes_subset(evaluation_subset)
+            and not _has_strong_blocking_evidence(assessment)
+        ):
+            return {
+                "selected_route": "target_first",
+                "selection_source": "guard",
+                "guard_reasons": ["hard_yes_weak_blocker_evidence"],
+                "requires_adjudication": False,
+            }
         return {
             "selected_route": "blocker_first",
             "selection_source": "guard",

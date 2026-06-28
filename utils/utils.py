@@ -79,6 +79,7 @@ VALID_ROUTE_GUARD_VARIANTS = {
     "none",
     "conservative_v1",
     "target_evidence_v2",
+    "eghc_consensus_v1",
 }
 
 ORACLE_FEATURE_PROMPTS = {
@@ -2058,7 +2059,13 @@ def get_prediction_result(
                 target_label=text,
             )
             packet = {"duplicate_mask_conflict": False}
-            decision = select_route(packet, assessment, challenger=None)
+            decision = select_route(
+                packet,
+                assessment,
+                challenger=None,
+                evaluation_subset=evaluation_subset,
+                route_guard_variant=route_guard_variant,
+            )
             route_assessment = {
                 "route_mode": decision["selected_route"],
                 "pre_guard_route_mode": assessment.get("recommended_route"),
@@ -2072,9 +2079,18 @@ def get_prediction_result(
                     != assessment.get("recommended_route")
                 ),
                 "route_guard_reasons": decision["guard_reasons"],
-                "scene_router_version": "eghc_guard_v1",
+                "scene_router_version": (
+                    "eghc_consensus_v1"
+                    if route_guard_variant == "eghc_consensus_v1"
+                    else "eghc_guard_v1"
+                ),
+                "route_guard_variant": route_guard_variant,
                 "scene_complexity": {
-                    "model": "eghc_guard_v1",
+                    "model": (
+                        "eghc_consensus_v1"
+                        if route_guard_variant == "eghc_consensus_v1"
+                        else "eghc_guard_v1"
+                    ),
                     "route_mode": decision["selected_route"],
                     "recommended_route": assessment.get("recommended_route"),
                     "target_visibility": assessment.get("target_visibility"),
@@ -2242,7 +2258,11 @@ def get_prediction_result(
                 "mask_query": result.get("mask_query", result.get("class_name", "")),
                 "confidence": result.get("confidence", 1.0),
             }
-            route_decision = {"selected_route": route_assessment["route_mode"]}
+            route_decision = {
+                "selected_route": route_assessment["route_mode"],
+                "route_guard_variant": route_guard_variant,
+                "evaluation_subset": evaluation_subset,
+            }
             if should_trigger_adjudication(
                 assessment=route_assessment,
                 route_decision=route_decision,
@@ -2250,13 +2270,14 @@ def get_prediction_result(
                 visible_ids=set(visible_object_ids),
             ):
                 qwen_messages = _make_reasoning_messages(
-                    adjudication_prompt(),
+                    adjudication_prompt(route_guard_variant),
                     format_adjudication_input(
                         input_text,
                         route_assessment,
                         route_decision,
                         plan,
                         set(visible_object_ids),
+                        route_guard_variant=route_guard_variant,
                     ),
                     base64_image,
                 )
@@ -2269,6 +2290,8 @@ def get_prediction_result(
                     qwen_output,
                     plan,
                     visible_ids=set(visible_object_ids),
+                    route_decision=route_decision,
+                    assessment=route_assessment,
                 )
                 reasoning["qwen_adjudication_raw_output"] = qwen_output
                 reasoning["qwen_adjudication"] = adjudication

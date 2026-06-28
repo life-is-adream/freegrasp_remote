@@ -283,6 +283,78 @@ class EvaluateMimoFullProtocolTest(unittest.TestCase):
             )
         )
 
+    def test_consensus_policy_propagates_route_guard_variant(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            molmo_dir = tmpdir / "molmo_output"
+            molmo_dir.mkdir()
+            run_root = tmpdir / "run"
+            calls = {"evaluate": []}
+
+            evaluate_common_stub = types.ModuleType("evaluate_common")
+            evaluate_common_stub.NPZ_DIR = "data/npz_file"
+            evaluate_common_stub.MOLMO_OUTPUT_DIR = str(molmo_dir)
+
+            def fake_evaluate_subset(subset_name, **kwargs):
+                calls["evaluate"].append((subset_name, kwargs))
+                output_dir = Path(kwargs["output_dir"])
+                output_dir.mkdir(parents=True, exist_ok=True)
+                (output_dir / f"out_{subset_name}.json").write_text(
+                    json.dumps([[1, 1, "a", 1, 1]])
+                )
+                return {"ssr": 1.0, "rsr": 1.0}
+
+            evaluate_common_stub.evaluate_subset = fake_evaluate_subset
+            evaluate_common_stub.missing_molmo_scene_ids = lambda *args, **kwargs: []
+
+            evaluate_all_stub = types.ModuleType("evaluate_all")
+            from evaluate_all import _subset_config as real_subset_config
+            evaluate_all_stub._subset_config = real_subset_config
+
+            evaluate_mimo_stub = types.ModuleType("evaluate_mimo")
+            evaluate_mimo_stub.create_mimo_client = lambda **kwargs: object()
+            evaluate_mimo_stub.validate_mimo_supports_image_input = lambda *args, **kwargs: None
+            evaluate_mimo_stub.patch_freegrasp_client = lambda *args, **kwargs: None
+
+            module_names = ["evaluate_common", "evaluate_all", "evaluate_mimo"]
+            originals = {name: sys.modules.get(name) for name in module_names}
+            sys.modules["evaluate_common"] = evaluate_common_stub
+            sys.modules["evaluate_all"] = evaluate_all_stub
+            sys.modules["evaluate_mimo"] = evaluate_mimo_stub
+
+            def restore_modules():
+                for name, module in originals.items():
+                    if module is None:
+                        sys.modules.pop(name, None)
+                    else:
+                        sys.modules[name] = module
+
+            self.addCleanup(restore_modules)
+
+            args = evaluate_mimo_full_protocol.parse_args(
+                [
+                    "--subset-policy",
+                    "eghc_consensus_v1",
+                    "--splits",
+                    "0",
+                    "--run-root",
+                    str(run_root),
+                    "--no-resume",
+                    "--skip-mimo-preflight",
+                ]
+            )
+            summary = evaluate_mimo_full_protocol.run_full_protocol(args)
+            manifest = json.loads((run_root / "run_manifest.json").read_text())
+
+        self.assertEqual(manifest["route_guard_variant"], "eghc_consensus_v1")
+        self.assertEqual(summary["route_guard_variant"], "eghc_consensus_v1")
+        self.assertTrue(
+            all(
+                call[1]["route_guard_variant"] == "eghc_consensus_v1"
+                for call in calls["evaluate"]
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

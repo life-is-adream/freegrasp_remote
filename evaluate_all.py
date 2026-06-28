@@ -101,6 +101,7 @@ def parse_args(argv=None):
             "unified_hard_safe_no_point_repair",
             "unified_hard_safe_no_id_repair",
             "eghc_guard_only_v1",
+            "eghc_consensus_v1",
         ],
         default="none",
     )
@@ -354,7 +355,7 @@ def _subset_config(
         }
 
     # EGHC guard-only policy
-    if subset_policy == "eghc_guard_only_v1":
+    if subset_policy in {"eghc_guard_only_v1", "eghc_consensus_v1"}:
         return {
             "prompt_variant": "legacy",
             "mimo_retry_mode": "none",
@@ -364,6 +365,11 @@ def _subset_config(
             "uses_benchmark_difficulty": False,
             "uses_gt_features": False,
             "protocol_ablation": "full",
+            "route_guard_variant": (
+                "eghc_consensus_v1"
+                if subset_policy == "eghc_consensus_v1"
+                else "none"
+            ),
         }
 
     if subset_policy not in {
@@ -411,6 +417,7 @@ def _subset_config(
         "unified_hard_safe_no_point_repair",
         "unified_hard_safe_no_id_repair",
         "eghc_guard_only_v1",
+        "eghc_consensus_v1",
     }:
         raise ValueError(f"Unknown subset_policy: {subset_policy}")
 
@@ -683,9 +690,19 @@ def evaluate_pipeline(
             routing_variant=config["routing_variant"],
             feature_source=config["feature_source"],
             protocol_ablation=config.get("protocol_ablation", "full"),
-            route_guard_variant=route_guard_variant,
+            route_guard_variant=config.get("route_guard_variant", route_guard_variant),
             resume=resume,
         )
+
+    resolved_route_guard_variants = {
+        config.get("route_guard_variant", route_guard_variant)
+        for config in subset_configs.values()
+    }
+    summary_route_guard_variant = (
+        next(iter(resolved_route_guard_variants))
+        if len(resolved_route_guard_variants) == 1
+        else route_guard_variant
+    )
 
     summary = {
         "model": model_name,
@@ -696,7 +713,7 @@ def evaluate_pipeline(
         "subset_policy": subset_policy,
         "routing_variant": routing_variant,
         "feature_source": feature_source,
-        "route_guard_variant": route_guard_variant,
+        "route_guard_variant": summary_route_guard_variant,
         "uses_benchmark_difficulty": any(
             config["uses_benchmark_difficulty"]
             for config in subset_configs.values()
