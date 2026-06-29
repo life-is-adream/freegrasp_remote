@@ -1,75 +1,70 @@
 \section{Method}
 
-\subsection{Overview}
+\subsection{Task Formulation}
 
-FreeGrasp++ extends the original FreeGrasp pipeline with protocol-aware reasoning and robust error handling. Figure~\ref{fig:overview} shows the system architecture. The key insight is that \emph{protocol engineering}—explicitly designing how the VLM should reason and what actions to take under uncertainty—can substantially improve robustness without additional model training.
+Given an RGB image $I$, a free-form instruction $q$, and a set of visible Molmo candidates
+\begin{equation}
+\mathcal{C}=\{c_i=(i,p_i)\}_{i=1}^{K},
+\end{equation}
+where $i$ is a visible numeric mark and $p_i=(x_i,y_i)$ is its image point, the system predicts the object ID $i^{*}$ that should be grasped now and a corresponding mask $\hat{M}$. The first-grasp object may be the requested target or a visible blocker whose removal is required before the target can be grasped.
 
-\subsection{Unified Hard-Safe Protocol}
+We evaluate two binary outcomes. Reasoning success rate (RSR) measures whether the selected ID maps to an acceptable first-grasp instance. Segmentation success rate (SSR) measures whether $\hat{M}$ reaches IoU $\geq 0.5$ with an acceptable ground-truth first-grasp mask. Ground-truth instance IDs and masks are used only by the scorer after prediction.
 
-The original FreeGrasp uses a single reasoning prompt for all scenes. We observe that this leads to systematic failures in hard scenes where the target is heavily occluded. Our \emph{Unified Hard-Safe Protocol} addresses this through a structured JSON output schema:
+\subsection{Inference Evidence Boundary}
 
+EGHC uses only deployment-available inference evidence. The evidence packet contains Molmo candidate IDs and points, predicted masks or boxes, predicted spatial relations, parser validity flags, and route-specific consistency signals. It does not contain ground-truth semantic labels, ground-truth instance masks, benchmark difficulty labels, or Molmo-to-ground-truth mappings.
+
+This boundary is important because previous v10/S1 experiments used annotation-derived semantic and geometric features. Those runs remain useful for measuring oracle headroom, but they are not treated as deployable method results. EGHC3\_v3 is the frozen main method because its manifest records \texttt{feature\_source=deployable\_predicted}, \texttt{uses\_gt\_features=false}, and \texttt{uses\_benchmark\_difficulty=false}.
+
+\subsection{Evidence-Gated Hierarchical Consensus Routing}
+
+The routing stage converts evidence into one of three decision modes:
+\begin{itemize}
+    \item \texttt{direct}: the target appears visible and unobstructed, so the target itself should be grasped.
+    \item \texttt{target\_first}: the target must be resolved before deciding whether a blocker is needed.
+    \item \texttt{blocker\_first}: evidence indicates that a visible object should be removed before the target can be grasped.
+\end{itemize}
+
+The gate is conservative. A direct decision requires a valid visible target ID and no credible blocker or ambiguity evidence. A blocker-first decision requires physical evidence such as contact, coverage, on-top, overlap, or a strong visibility conflict; image-space proximity alone is insufficient. Ambiguous or inconsistent evidence falls back to target-first reasoning rather than forcing a blocker.
+
+Hierarchical consensus is then used to stabilize the final route and first-grasp ID. The first stage proposes a route from the evidence packet. The second stage performs route-specific planning using the selected protocol. A lightweight repair or adjudication call is triggered only when the selected ID is invalid, the direct route conflicts with blocker evidence, or the target/blocker decision is internally inconsistent. This keeps the decision auditable: every final prediction can be traced to the evidence fields and guard reasons that allowed or rejected a route.
+
+\subsection{Route-Specific First-Grasp Planning}
+
+All routes return a parser-compatible structured decision:
 \begin{verbatim}
 {
-  "target_object_id": 3,
-  "target_status": "visible_but_blocked",
-  "first_grasp_object_id": 5,
-  "action": "remove_blocker",
-  "ranked_first_grasp_candidates": [5, 2, 7],
-  "confidence": 0.90,
-  "evidence": {
-    "blocker_evidence": "object 5 covers target"
+  "target_resolution": {...},
+  "blocker_evidence": [...],
+  "first_grasp_decision": {
+    "object_id": 3,
+    "action": "pick_target",
+    "mask_query": "red box",
+    "ranked_candidates": [3, 5, 2]
   }
 }
 \end{verbatim}
 
-The protocol enforces three key rules:
+The direct route is optimized for visible, unblocked targets. The target-first route separates target identity from the immediate first-grasp object, which reduces the chance that the model confuses the requested object with a blocker. The blocker-first route requires a visible and immediately graspable blocker and rejects unsupported nearby distractors. Ranked candidates are retained for mask repair, but the primary RSR decision remains the selected first-grasp ID.
 
-\begin{enumerate}
-    \item \textbf{Hard-safe fallback}: When \texttt{target\_status} is \texttt{visible\_but\_blocked}, \texttt{mostly\_hidden}, or \texttt{uncertain}, the action is forced to \texttt{remove\_blocker}.
-    \item \textbf{Confidence threshold}: When \texttt{confidence} $< 0.70$, the system defaults to \texttt{remove\_blocker}.
-    \item \textbf{Ranked candidates}: The protocol outputs ordered candidates, enabling fallback if the primary choice fails.
-\end{enumerate}
+\subsection{Point- and Evidence-Constrained Mask Repair}
 
-\subsection{Evidence-Gated Hard-Safe Cascade (EGHC)}
-
-The EGHC architecture separates reasoning into independent stages (Figure~\ref{fig:eghc}):
-
-\textbf{Stage 1: Evidence Collection.} Collect scene evidence from Molmo detections, including visible object IDs, spatial coordinates, and depth information. All evidence is sanitized to exclude ground-truth fields.
-
-\textbf{Stage 2: Deterministic Guard Router.} Apply rule-based routing:
-\begin{itemize}
-    \item \texttt{direct}: Only when target is \texttt{free\_visible} AND no blocking relations AND no mask conflicts.
-    \item \texttt{blocker\_first}: When blocking relations exist.
-    \item \texttt{target\_first}: Default fallback.
-\end{itemize}
-
-\textbf{Stage 3: Conditional Adjudication.} Trigger Qwen adjudication when:
-\begin{itemize}
-    \item Selected object ID is not in visible IDs.
-    \item Direct route but blocking relations exist.
-    \item Confidence $< 0.60$.
-\end{itemize}
-
-\subsection{Point-Constrained Mask Repair}
-
-Traditional segmentation uses class-name queries (e.g., ``red cup''), which fail when objects are ambiguous. Our \emph{point-constrained mask repair} prioritizes masks containing the Molmo-detected point:
-
+After first-grasp planning, the selected visual phrase is passed to the segmentation backend. If several masks are returned, EGHC scores them by point consistency, confidence, and area plausibility:
 \begin{equation}
-\text{score}(m) = \mathbb{1}[\text{contains\_point}(m)] \cdot 2.0 + \text{SAM\_score}(m) - \text{penalty}(m)
+\operatorname{score}(M)=\lambda_p \mathbf{1}[p_{i^{*}}\in M]+\lambda_c s(M)-\lambda_a A(M),
 \end{equation}
-
-where $\text{penalty}(m)$ penalizes duplicate or implausibly large masks. If the primary mask fails, we try the next candidate from \texttt{ranked\_first\_grasp\_candidates}.
+where $s(M)$ is the segmentation confidence and $A(M)$ is normalized mask area. Point consistency is the dominant term, because the selected Molmo ID defines the intended visible instance. If the primary query fails, EGHC tries simplified noun phrases and ranked fallback candidates while preserving an explicit repair flag.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{figures/system_overview.pdf}
-    \caption{FreeGrasp++ system overview. The pipeline consists of: (1) object detection with Molmo, (2) evidence-gated cascade routing, (3) protocol-aware reasoning with hard-safe fallback, and (4) point-constrained mask repair.}
+    \caption{EGHC overview. Molmo candidates and predicted evidence feed an evidence gate, hierarchical route consensus, route-specific first-grasp planning, and point-constrained mask repair. Ground-truth masks and difficulty labels are isolated to the scorer and are not inference inputs.}
     \label{fig:overview}
 \end{figure}
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{figures/eghc_architecture.pdf}
-    \caption{Evidence-Gated Hard-Safe Cascade (EGHC) architecture. The system separates evidence collection, deterministic routing, and conditional adjudication into independent stages.}
+    \caption{Evidence-Gated Hierarchical Consensus Routing. Direct decisions require strong target evidence and no blocker conflict; ambiguous evidence falls back to target-first reasoning; blocker-first decisions require explicit physical blocker evidence.}
     \label{fig:eghc}
 \end{figure}

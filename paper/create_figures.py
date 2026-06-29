@@ -56,7 +56,7 @@ def create_system_overview_figure():
         (1.2, 'Input\n(RGB + Depth\n+ Language)'),
         (3.2, 'Molmo\nObject\nDetection'),
         (5.2, 'EGHC\nRouting'),
-        (7.2, 'Protocol\nReasoning\n(Hard-Safe)'),
+        (7.2, 'Route-Specific\nFirst-Grasp\nPlanning'),
         (9.2, 'Point-Constrained\nMask Repair'),
     ]
     colors = ['#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#9b59b6']
@@ -164,17 +164,17 @@ def create_main_results_figure():
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
 
     # Load actual data
-    s1 = load_summary('S1')
     s0 = load_summary('S0')
+    eghc = load_summary('EGHC3_v3_qwen35_full')
 
-    if s1 is None or s0 is None:
-        print("  ERROR: Cannot create main results figure without S1 and S0 data")
+    if eghc is None or s0 is None:
+        print("  ERROR: Cannot create main results figure without EGHC3_v3_qwen35_full and S0 data")
         return
 
-    easy_s1, med_s1, hard_s1 = aggregate_by_difficulty(s1)
     easy_s0, med_s0, hard_s0 = aggregate_by_difficulty(s0)
+    easy_eghc, med_eghc, hard_eghc = aggregate_by_difficulty(eghc)
 
-    methods = ['ThinkGrasp', 'FreeGrasp', 'FreeGrasp\n(MiMo)', 'FreeGrasp++']
+    methods = ['ThinkGrasp', 'FreeGrasp', 'S0\n(MiMo)', 'EGHC3_v3']
 
     # ThinkGrasp numbers from their paper (not computed here)
     thinkgrasp_rsr = [63.0, 13.0, 5.0]
@@ -188,9 +188,9 @@ def create_main_results_figure():
     s0_rsr = [easy_s0['rsr'] * 100, med_s0['rsr'] * 100, hard_s0['rsr'] * 100]
     s0_ssr = [easy_s0['ssr'] * 100, med_s0['ssr'] * 100, hard_s0['ssr'] * 100]
 
-    # FreeGrasp++ = S1
-    s1_rsr = [easy_s1['rsr'] * 100, med_s1['rsr'] * 100, hard_s1['rsr'] * 100]
-    s1_ssr = [easy_s1['ssr'] * 100, med_s1['ssr'] * 100, hard_s1['ssr'] * 100]
+    # Main no-GT method = EGHC3_v3_qwen35_full
+    eghc_rsr = [easy_eghc['rsr'] * 100, med_eghc['rsr'] * 100, hard_eghc['rsr'] * 100]
+    eghc_ssr = [easy_eghc['ssr'] * 100, med_eghc['ssr'] * 100, hard_eghc['ssr'] * 100]
 
     x = np.arange(len(methods))
     width = 0.2
@@ -198,7 +198,7 @@ def create_main_results_figure():
     # RSR plot
     for i, (label, color) in enumerate([('Easy', '#2ecc71'), ('Medium', '#f39c12'), ('Hard', '#e74c3c')]):
         values = [
-            thinkgrasp_rsr[i], freegrasp_rsr[i], s0_rsr[i], s1_rsr[i]
+            thinkgrasp_rsr[i], freegrasp_rsr[i], s0_rsr[i], eghc_rsr[i]
         ]
         ax1.bar(x + (i - 1) * width, values, width, label=label, color=color)
     ax1.set_ylabel('RSR (%)')
@@ -211,7 +211,7 @@ def create_main_results_figure():
     # SSR plot
     for i, (label, color) in enumerate([('Easy', '#2ecc71'), ('Medium', '#f39c12'), ('Hard', '#e74c3c')]):
         values = [
-            thinkgrasp_ssr[i], freegrasp_ssr[i], s0_ssr[i], s1_ssr[i]
+            thinkgrasp_ssr[i], freegrasp_ssr[i], s0_ssr[i], eghc_ssr[i]
         ]
         ax2.bar(x + (i - 1) * width, values, width, label=label, color=color)
     ax2.set_ylabel('SSR (%)')
@@ -233,33 +233,25 @@ def create_ablation_figure():
     fig, ax = plt.subplots(figsize=(8, 4))
 
     # Load data
-    s1 = load_summary('S1')
     s0 = load_summary('S0')
+    eghc = load_summary('EGHC3_v3_qwen35_full')
+    s1 = load_summary('S1')
 
-    if s1 is None or s0 is None:
-        print("  ERROR: Cannot create ablation figure without S1 and S0 data")
+    if eghc is None or s0 is None or s1 is None:
+        print("  ERROR: Cannot create ablation figure without EGHC3_v3_qwen35_full, S0, and S1 data")
         return
 
-    configs = ['Full\n(FreeGrasp++)', 'w/o Hard-\nsafe fallback']
-    rsr = [s1['overall']['rsr'] * 100, s0['overall']['rsr'] * 100]
-    ssr = [s1['overall']['ssr'] * 100, s0['overall']['ssr'] * 100]
-
-    # Try to load additional ablation results
-    ablation_experiments = [
-        ('UHS_no_ranked', 'w/o Ranked\ncandidates'),
-        ('UHS_no_point', 'w/o Point\nrepair'),
-        ('UHS_no_id', 'w/o ID\nrepair'),
-        ('EGHC1_fixed', 'w/o EGHC\nadj.'),
+    configs = ['S0\noriginal', 'EGHC3_v3\n(no GT)', 'S1\noracle']
+    rsr = [
+        s0['overall']['rsr'] * 100,
+        eghc['overall']['rsr'] * 100,
+        s1['overall']['rsr'] * 100,
     ]
-
-    for exp_name, label in ablation_experiments:
-        exp_data = load_summary(exp_name)
-        if exp_data is not None:
-            configs.append(label)
-            rsr.append(exp_data['overall']['rsr'] * 100)
-            ssr.append(exp_data['overall']['ssr'] * 100)
-        else:
-            print(f"  Skipping {label}: no data for {exp_name}")
+    ssr = [
+        s0['overall']['ssr'] * 100,
+        eghc['overall']['ssr'] * 100,
+        s1['overall']['ssr'] * 100,
+    ]
 
     x = np.arange(len(configs))
     width = 0.35
@@ -268,7 +260,7 @@ def create_ablation_figure():
     bars2 = ax.bar(x + width / 2, ssr, width, label='SSR', color='#e67e22')
 
     ax.set_ylabel('Score (%)')
-    ax.set_title('Ablation Study')
+    ax.set_title('Controlled Baseline, Main Method, and Oracle Headroom')
     ax.set_xticks(x)
     ax.set_xticklabels(configs)
     ax.legend()
@@ -307,8 +299,7 @@ def create_route_distribution_figure():
         subsets = ['Easy', 'Medium', 'Hard']
         routes = {'Easy': [70, 25, 5], 'Medium': [30, 50, 20], 'Hard': [10, 30, 60]}
     else:
-        # Route distribution is approximate - these are heuristic estimates
-        # based on the protocol rules (hard-safe fallback → more blocker_first in hard scenes)
+        # Route distribution is approximate: retained only as a draft schematic.
         subsets = ['Easy', 'Medium', 'Hard']
         routes = {
             'Easy': [70, 25, 5],    # direct, target_first, blocker_first

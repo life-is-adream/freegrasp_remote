@@ -1,15 +1,9 @@
 \section{Conclusion}
 
-We presented FreeGrasp++, a protocol-aware extension to the FreeGrasp pipeline for robust language-guided robotic grasping. Our key contributions include:
+We presented Evidence-Gated Hierarchical Consensus Routing for free-form language-guided grasping. The method changes the FreeGrasp decision contract from a direct object answer into an auditable target/blocker process with deployment-available evidence, route-specific planning, hierarchical consensus, and point-constrained mask repair.
 
-\begin{enumerate}
-    \item A \emph{Unified Hard-Safe Protocol} that defaults to conservative blocker-first actions under uncertainty, achieving +9.5\% RSR improvement over the same-model baseline.
-    \item An \emph{Evidence-Gated Hard-Safe Cascade (EGHC)} architecture that separates evidence collection, routing, and execution into independently testable stages.
-    \item \emph{Point-constrained mask repair} that improves segmentation robustness through point-guided mask selection with ranked-candidate fallback.
-\end{enumerate}
+On 900 FreeGraspData instructions, the frozen EGHC3\_v3 configuration achieved 60.89\% RSR and 55.22\% SSR without ground-truth features or benchmark difficulty labels. This improves the reported original FreeGrasp GPT-4o baseline by approximately +13.6 pp RSR and +17.0 pp SSR, and improves the controlled S0 original-protocol baseline by +3.00 pp RSR and +7.67 pp SSR. The separated S1 oracle result of 67.44\% RSR and 60.11\% SSR shows remaining headroom but is not a deployable method result.
 
-On the FreeGraspData benchmark, FreeGrasp++ achieves 67.4\% RSR and 60.1\% SSR, representing significant improvements over the original FreeGrasp. A controlled comparison using the same VLM backbone (MiMo-v2.5) confirms that the gains come from protocol engineering (+9.5\% RSR over the original protocol). A deployable configuration without oracle features achieves 61.0\% RSR, representing the expected performance in real deployment scenarios.
+\textbf{Limitations.} EGHC still struggles in hard scenes, where blocker and visibility inference remain unreliable. Easy-scene failures increasingly reflect instance-mask ambiguity, whereas hard-scene failures often occur before segmentation. The present evidence is benchmark RSR/SSR, not a full real-robot sequence success study, and paired bootstrap confidence intervals still need to be added before final submission.
 
-\textbf{Limitations.} Our current approach uses oracle features for medium and hard subsets, which limits deployability. A fully deployable configuration without oracle features achieves lower but still meaningful improvements. Additionally, the EGHC adjudication stage requires further validation across more diverse scenarios.
-
-\textbf{Future work.} We plan to extend FreeGrasp++ with: (1) elimination of oracle features through improved spatial reasoning, (2) online learning from robot execution feedback, (3) memory mechanisms for multi-step manipulation tasks, and (4) integration with more advanced spatial reasoning models.
+\textbf{Future work.} The next step is to strengthen predicted visibility and blocker evidence, add statistically paired confidence intervals, and validate whether RSR/SSR gains translate to multi-step real-robot grasp execution.

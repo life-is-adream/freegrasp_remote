@@ -2,100 +2,84 @@
 
 \subsection{Experimental Setup}
 
-\textbf{Dataset.} We evaluate on FreeGraspData~\cite{freegrasp}, which contains 900 evaluation scenarios across 6 difficulty levels (Easy/Medium/Hard $\times$ with/without ambiguity). Each scenario includes an RGB image, depth map, and free-form language instruction.
+\textbf{Dataset.} We evaluate on FreeGraspData~\cite{freegrasp}. The evaluation set contains three language splits. Each split has six strata: Easy, Medium, and Hard scenes, each with and without ambiguity. We use all 900 instructions.
 
-\textbf{Metrics.} We report:
-\begin{itemize}
-    \item \textbf{RSR} (Reasoning Success Rate): Proportion of episodes where the predicted object ID matches ground-truth.
-    \item \textbf{SSR} (Segmentation Success Rate): Proportion of episodes where the predicted mask achieves IoU $\geq 0.5$ with ground-truth.
-\end{itemize}
+\textbf{Metrics.} RSR measures whether the selected first-grasp object ID is acceptable under the benchmark grasp-order annotation. SSR measures whether the predicted first-grasp mask reaches IoU $\geq 0.5$ with an acceptable ground-truth mask. We report both metrics because correct reasoning can still fail at segmentation, and an accidental mask overlap should not be treated as a correct target/blocker decision.
 
-\textbf{Baselines.} We compare against:
-\begin{itemize}
-    \item \textbf{FreeGrasp}~\cite{freegrasp}: Original method with GPT-4o reasoning, using mark-based visual prompting.
-    \item \textbf{ThinkGrasp}~\cite{thinkgrasp}: State-of-the-art VLM-based grasping method using strategic part grasping.
-\end{itemize}
+\textbf{Baselines.} We compare against the original FreeGrasp GPT-4o results reported by Jiao \emph{et al.}~\cite{freegrasp}. We also include S0, a controlled same-cache baseline that runs the original FreeGrasp protocol with the same MiMo-v2.5 backbone and the same reused Molmo cache as EGHC3\_v3. Finally, S1 is reported only as an oracle upper bound because it uses ground-truth-derived features and benchmark difficulty labels.
 
-\textbf{Implementation.} We use MiMo-v2.5 as our VLM backbone, with Molmo~\cite{molmo} for object detection and LangSAM~\cite{langsam} for segmentation. All experiments use the same Molmo cache for fair comparison.
+\textbf{Implementation.} EGHC3\_v3 uses MiMo-v2.5 as the main VLM, a route guard recorded as \texttt{eghc\_consensus\_v1}, and \texttt{eghc\_mask\_repair\_v1} for segmentation repair. The run uses the preserved Molmo cache recorded in the run manifest (SHA-256 prefix \texttt{705d0883}). The full run manifest records 1889 reasoning calls, 900 router calls, 59 repair calls, and 2.10 calls per sample.
 
 \subsection{Main Results}
 
-Table~\ref{tab:main} shows the main results on FreeGraspData. FreeGrasp++ achieves:
-\begin{itemize}
-    \item \textbf{67.4\% RSR} and \textbf{60.1\% SSR} overall, representing +9.5\% RSR and +12.5\% SSR over the original FreeGrasp (GPT-4o) baseline.
-    \item Particularly strong gains in \textbf{Medium} (+26.0\% RSR) and \textbf{Hard} (+17.3\% RSR) scenes where protocol engineering has the most impact.
-    \item Consistent improvements across all difficulty levels.
-\end{itemize}
-
-\textbf{Fair comparison.} To enable a controlled comparison under the same VLM backbone, we also report \texttt{FreeGrasp (MiMo)} (S0) using the original FreeGrasp protocol with MiMo-v2.5. FreeGrasp++ outperforms this same-model baseline by +9.5\% RSR (67.4\% vs 57.9\%), confirming that the gains come from protocol engineering rather than the model change.
-
-\textbf{Oracle features note.} Following prior protocol analysis methodology, medium and hard subsets use ground-truth semantic labels and geometry features as auxiliary VLM input (oracle features). The Easy subset uses no oracle features. A deployable configuration without oracle features achieves 61.0\% RSR on a single split (UHS1), representing the lower-bound performance.
+Table~\ref{tab:main} shows the headline comparison. EGHC3\_v3 achieves 60.89\% RSR and 55.22\% SSR over 900 instructions. Relative to the reported original FreeGrasp GPT-4o baseline, this corresponds to approximately +13.6 percentage points RSR and +17.0 percentage points SSR. Relative to the controlled S0 original-protocol baseline, EGHC3\_v3 improves RSR by +3.00 percentage points and SSR by +7.67 percentage points.
 
 \begin{table}[t]
 \centering
-\caption{Main results on FreeGraspData. Higher values indicate better performance. Best results in \textbf{bold}.}
+\caption{Main FreeGraspData results. The original FreeGrasp row is the reported GPT-4o baseline from the prior paper; S0 and EGHC3\_v3 are controlled runs under the same reused Molmo cache.}
 \label{tab:main}
-\begin{tabular}{lcccccc}
+\small
+\begin{tabular}{lcccc}
 \toprule
-\multirow{2}{*}{Method} & \multicolumn{2}{c}{Easy} & \multicolumn{2}{c}{Medium} & \multicolumn{2}{c}{Hard} \\
-& RSR & SSR & RSR & SSR & RSR & SSR \\
+Method & GT features & Difficulty label & RSR & SSR \\
 \midrule
-ThinkGrasp~\cite{thinkgrasp} & 63.0 & 46.0 & 13.0 & 16.0 & 5.0 & 15.0 \\
-FreeGrasp~\cite{freegrasp} & 83.0 & 64.0 & 46.0 & 40.0 & 22.0 & 13.0 \\
-FreeGrasp (MiMo) & 83.0 & 67.7 & 59.0 & 51.7 & 31.7 & 23.3 \\
-\midrule
-\textbf{FreeGrasp++ (Ours)} & \textbf{91.0} & \textbf{84.3} & \textbf{72.0} & \textbf{65.3} & \textbf{39.3} & \textbf{30.7} \\
+FreeGrasp GPT-4o~\cite{freegrasp} & No & No & 47.3 & 38.2 \\
+S0 original protocol & No & No & 57.89 & 47.56 \\
+\textbf{EGHC3\_v3 (ours)} & \textbf{No} & \textbf{No} & \textbf{60.89} & \textbf{55.22} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Ablation Studies}
+The larger gain in SSR than RSR indicates that EGHC does not only change the selected first-grasp object; it also improves the consistency between the chosen candidate and the final segmentation mask. This is important for robotic execution, where a correct target/blocker decision still requires an actionable mask.
 
-To understand the contribution of each component, we conduct ablation studies by removing one component at a time (Table~\ref{tab:ablation}). We report two sets of results: the full oracle-feature configuration and a deployable configuration without oracle features.
+\subsection{Oracle Headroom}
+
+Table~\ref{tab:oracle} separates the deployable method from the oracle diagnostic result. S1 reaches 67.44\% RSR and 60.11\% SSR, but it uses annotation-derived features and benchmark difficulty labels. We therefore interpret it as an upper-bound-style diagnostic, not as an automatic method. The gap between S1 and EGHC3\_v3 is 6.55 percentage points RSR and 4.89 percentage points SSR, suggesting that more accurate predicted visibility and blocker evidence could still improve the deployable pipeline.
 
 \begin{table}[t]
 \centering
-\caption{Ablation study results. The hard-safe fallback contributes the largest performance drop. Entries marked with $^*$ are from single-split evaluation (n=300).}
-\label{tab:ablation}
-\begin{tabular}{lcc}
+\caption{Oracle upper bound. S1 is diagnostic only because it uses ground-truth features and benchmark difficulty labels during inference.}
+\label{tab:oracle}
+\small
+\begin{tabular}{lcccc}
 \toprule
-Configuration & RSR & SSR \\
+Method & GT features & Difficulty label & RSR & SSR \\
 \midrule
-\textbf{FreeGrasp++ (Full, oracle)} & \textbf{67.4} & \textbf{60.1} \\
-FreeGrasp (MiMo baseline) & 57.9 & 47.6 \\
-\midrule
-w/o Hard-safe fallback$^*$ & 57.9 & 47.6 \\
-w/o EGHC adjudication$^*$ & 55.0 & 50.0 \\
+EGHC3\_v3 (deployable evidence) & No & No & 60.89 & 55.22 \\
+S1 oracle diagnostic & Yes & Yes & 67.44 & 60.11 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Key findings:}
-\begin{enumerate}
-    \item \textbf{Hard-safe fallback} is the most critical component. Removing it reverts to the original FreeGrasp protocol performance (57.9\% RSR), confirming that explicit uncertainty handling is essential for robust grasping.
-    \item \textbf{Point-constrained repair} improves segmentation robustness by prioritizing masks containing the Molmo-detected point, with ranked-candidate fallback when the primary mask fails.
-    \item \textbf{Ranked candidates} enables graceful degradation when the primary choice fails, providing ordered alternatives for mask repair.
-    \item \textbf{EGHC adjudication} shows promising but preliminary results (55.0\% RSR on single split), requiring further validation across all splits.
-\end{enumerate}
+\subsection{Per-Stratum Analysis}
 
-\subsection{Route Distribution Analysis}
+Table~\ref{tab:strata} breaks EGHC3\_v3 down by difficulty and ambiguity. Easy scenes remain high in RSR, but their SSR is lower, indicating that some residual errors are mask or same-instance failures after mostly correct target selection. Hard scenes remain below 35\% RSR, showing that blocker and visibility inference are still the main bottlenecks.
 
-Figure~\ref{fig:routes} shows the route distribution across difficulty levels. The hard-safe fallback correctly routes most hard scenes to \texttt{blocker\_first} (60\%), while easy scenes predominantly use \texttt{direct} (70\%). This demonstrates that the protocol correctly adapts its behavior based on scene difficulty.
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/route_distribution.pdf}
-    \caption{Route distribution by difficulty level. Hard scenes are predominantly routed to \texttt{blocker\_first} due to hard-safe fallback, while easy scenes use \texttt{direct}.}
-    \label{fig:routes}
-\end{figure}
+\begin{table}[t]
+\centering
+\caption{EGHC3\_v3 per-stratum performance over three splits. Each stratum contains 150 samples.}
+\label{tab:strata}
+\small
+\begin{tabular}{lccc}
+\toprule
+Stratum & $N$ & RSR & SSR \\
+\midrule
+Easy, no ambiguity & 150 & 93.33 & 79.33 \\
+Easy, ambiguity & 150 & 82.67 & 76.67 \\
+Medium, no ambiguity & 150 & 60.00 & 56.67 \\
+Medium, ambiguity & 150 & 63.33 & 62.67 \\
+Hard, no ambiguity & 150 & 32.00 & 29.33 \\
+Hard, ambiguity & 150 & 34.00 & 26.67 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Failure Analysis}
 
-We analyze the primary failure modes of FreeGrasp++:
-\begin{itemize}
-    \item \textbf{Spatial reasoning errors}: The VLM incorrectly assesses blocking relationships, selecting the wrong object to remove or attempting direct grasp when the target is occluded.
-    \item \textbf{Segmentation failure}: Despite correct reasoning, the mask fails to capture the target, often due to similar-looking objects or ambiguous visual features.
-    \item \textbf{Oracle feature dependency}: The current configuration relies on ground-truth features for medium and hard subsets, limiting real-world deployment.
-\end{itemize}
+The stratum-level pattern suggests two different failure regimes. In easy scenes, EGHC usually resolves the requested target, so the remaining gap between RSR and SSR is consistent with instance-level mask ambiguity, missing masks, or masks that do not contain the selected Molmo point. In hard scenes, RSR itself is low; the dominant errors occur before mask evaluation, when the route or first-grasp ID does not match the physically relevant target/blocker relation.
 
-These failure modes suggest that future work should focus on eliminating oracle features through improved spatial reasoning, and enhancing segmentation robustness for ambiguous objects.
+Qualitative inspection should therefore be organized around two groups. Easy failures should show same-class or mask-IoU ambiguity. Hard failures should show wrong blocker selection, direct target selection when blocker removal was needed, or blocker selection when the target was directly accessible. This split keeps the discussion grounded: EGHC improves the decision contract, but it does not solve hard-scene visibility estimation.
+
+\subsection{Statistical Verification}
+
+The current tables report frozen point estimates. Before submission, we will add paired, scene-clustered bootstrap confidence intervals for EGHC3\_v3 versus S0 and for S1 versus EGHC3\_v3. The paired key will include split, subset, row index, scene ID, query object ID, and annotation text. Until those intervals are added, significance language is intentionally avoided.

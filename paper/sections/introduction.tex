@@ -1,26 +1,17 @@
 \section{Introduction}
 
-Robotic grasping from free-form language instructions in cluttered bin-picking scenarios remains a significant challenge. While Vision-Language Models (VLMs) like GPT-4o demonstrate strong general reasoning capabilities, they struggle with visual spatial reasoning, particularly in understanding object occlusion and spatial relationships~\cite{freegrasp}.
+Robotic grasping from free-form language requires more than naming an object in an image. In clutter, an instruction can refer to a target instance, a spatial relation, and an implicit action order: the robot may need to grasp the target directly, or first remove a visible object that blocks access to it. This makes the first-grasp decision a coupled target-grounding and blocker-reasoning problem rather than a simple open-vocabulary classification task.
 
-The original FreeGrasp~\cite{freegrasp} introduced a novel pipeline leveraging VLMs' world knowledge for zero-shot robotic grasping, using mark-based visual prompting with Molmo~\cite{molmo} for object detection and GPT-4o for grasp reasoning. However, it exhibits three key limitations:
+FreeGrasp~\cite{freegrasp} formalized this setting by combining Molmo-based marked object candidates with vision-language reasoning and language-conditioned segmentation. Its direct answer interface is attractive because it is simple, but it entangles several failure sources. When the selected object is wrong, the system may have misidentified the target, confused two same-class instances, inferred a false obstruction, or sent an unsuitable phrase to the segmentation backend. These errors are especially costly in medium and hard scenes, where the correct first grasp may be a blocker rather than the requested target.
 
+We address this limitation by replacing the direct answer contract with \emph{Evidence-Gated Hierarchical Consensus Routing} (EGHC). Instead of asking a vision-language model for one object ID, EGHC first constructs an auditable evidence packet from deployment-available signals: Molmo candidate IDs and points, predicted mask and spatial evidence, and route-specific consistency checks. A hierarchical routing stage then selects among direct, target-first, and blocker-first reasoning modes. When evidence is weak or inconsistent, the system requests route-specific planning or adjudication rather than committing to the most visually salient candidate.
+
+This paper repositions our previous annotation-assisted v10/S1 analyses as diagnostic upper bounds, not as the main method. The central result is the frozen no-ground-truth EGHC3\_v3 configuration, evaluated on all 900 FreeGraspData instructions. EGHC3\_v3 achieves 60.89\% RSR and 55.22\% SSR without ground-truth semantic features, ground-truth geometry, or benchmark difficulty labels. Relative to the controlled S0 original-protocol baseline under the same Molmo cache, EGHC3\_v3 improves SSR by 7.67 percentage points. Relative to the original FreeGrasp GPT-4o results reported in Table I of the FreeGrasp paper, it improves by approximately 13.6 percentage points RSR and 17.0 percentage points SSR.
+
+Our contributions are:
 \begin{enumerate}
-    \item \textbf{Protocol rigidity}: A single reasoning protocol handles all difficulty levels, leading to failures in hard scenes where the target is heavily occluded.
-    \item \textbf{Uncertainty blindness}: The system lacks explicit uncertainty quantification, making it unable to distinguish confident decisions from uncertain ones.
-    \item \textbf{Segmentation fragility}: Object segmentation relies on class-name queries, which fail when objects are ambiguous or partially visible.
-\end{enumerate}
-
-We address these limitations with \textbf{FreeGrasp++}, which introduces three complementary innovations:
-
-\begin{itemize}
-    \item \textbf{Unified Hard-Safe Protocol}: A conservative reasoning protocol that defaults to blocker-first actions when uncertain, ensuring robust behavior in challenging scenes.
-    \item \textbf{Evidence-Gated Hard-Safe Cascade (EGHC)}: A two-stage reasoning pipeline with deterministic guard routing and conditional Qwen adjudication for disambiguation.
-    \item \textbf{Point-Constrained Mask Repair}: Segmentation that prioritizes masks containing the Molmo-detected point, with ranked-candidate fallback.
-\end{itemize}
-
-Our key contributions are:
-\begin{enumerate}
-    \item A protocol engineering framework for VLM-based robotic grasping that explicitly handles uncertainty through hard-safe fallback.
-    \item An evidence-gated cascade architecture that separates evidence collection, routing, and execution into independently testable stages.
-    \item Comprehensive experiments demonstrating 9.5\% absolute RSR improvement over the original FreeGrasp, with particularly strong gains in hard scenes.
+    \item We formulate free-form language-guided grasping as an auditable target/blocker decision problem and introduce EGHC, a routing protocol that separates evidence collection, route selection, first-grasp planning, and mask repair.
+    \item We implement a deployable EGHC3\_v3 configuration that uses predicted evidence only, with explicit provenance showing no use of ground-truth features or benchmark difficulty labels during inference.
+    \item We provide a 900-sample FreeGraspData evaluation against both the published FreeGrasp baseline and a controlled S0 original-protocol baseline, plus a separated S1 oracle upper bound that quantifies remaining headroom.
+    \item We analyze failure modes across easy, medium, and hard strata, showing that easy failures are increasingly dominated by mask and instance ambiguity, whereas hard failures remain dominated by blocker and visibility judgments.
 \end{enumerate}

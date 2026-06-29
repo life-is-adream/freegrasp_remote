@@ -1,5 +1,5 @@
 % IEEE Robotics and Automation Letters (RAL) Paper
-% FreeGrasp++: Protocol-Aware Robotic Grasping with Evidence-Gated Cascade
+% Evidence-Gated Hierarchical Consensus Routing for FreeGrasp
 
 \documentclass[journal]{IEEEtran}
 
@@ -14,7 +14,7 @@
 
 \begin{document}
 
-\title{FreeGrasp++: Protocol-Aware Robotic Grasping with Evidence-Gated Cascade for Robust Language-Guided Manipulation}
+\title{Evidence-Gated Hierarchical Consensus Routing for Free-Form Language-Guided Grasping}
 
 \author{
 \IEEEauthorblockN{Anonymous Authors}
@@ -24,11 +24,11 @@
 \maketitle
 
 \begin{abstract}
-Vision-Language Models (VLMs) have shown promise for robotic grasping from free-form language instructions, but existing approaches struggle with hard scenes involving heavy occlusion and object ambiguity. We present FreeGrasp++, a protocol-aware extension that introduces three key improvements: (1) a \emph{Unified Hard-Safe Protocol} that defaults to conservative blocker-first actions when uncertain, (2) an \emph{Evidence-Gated Hard-Safe Cascade (EGHC)} with deterministic guard routing and conditional adjudication, and (3) \emph{point-constrained mask repair} for robust segmentation. On the FreeGraspData benchmark, FreeGrasp++ achieves 67.4\% RSR and 60.1\% SSR, representing absolute improvements of 9.5\% and 12.5\% over the original FreeGrasp. For hard and medium subsets, ground-truth semantic and geometric features serve as auxiliary VLM input (oracle features); a deployable configuration without oracle features achieves 61.0\% RSR. Ablation studies confirm that hard-safe fallback is the most critical component, contributing +9.5\% RSR improvement. Our results demonstrate that explicit protocol engineering with uncertainty-aware fallback can substantially improve VLM-based robotic grasping without additional model training.
+Free-form language-guided grasping requires a robot to resolve the instructed target, determine whether that target is immediately graspable, and select either the target or a visible blocker as the first grasp. Existing vision-language pipelines often collapse these decisions into a direct object answer, which makes target confusion, blocker mistakes, and mask failures difficult to separate. We present Evidence-Gated Hierarchical Consensus Routing (EGHC), a deployable extension of the FreeGrasp decision contract. EGHC builds an inference-time evidence packet from marked Molmo candidates, predicted spatial and mask evidence, and route-specific consistency checks; it then gates direct, target-first, and blocker-first reasoning through a hierarchical consensus procedure and applies point-constrained mask repair. On 900 FreeGraspData instructions, the frozen EGHC3\_v3 configuration achieves 60.89\% reasoning success rate (RSR) and 55.22\% segmentation success rate (SSR), improving the reported original FreeGrasp GPT-4o baseline by approximately +13.6 pp RSR and +17.0 pp SSR. Against the controlled same-cache S0 FreeGrasp-protocol baseline, EGHC3\_v3 improves SSR by +7.67 pp while using no ground-truth features or benchmark difficulty labels. An oracle S1 upper bound reaches 67.44\% RSR and 60.11\% SSR, indicating remaining headroom from better visibility and blocker evidence. The results support auditable evidence-gated routing over direct VLM answering, while showing that hard-scene blocker and instance ambiguity remain open bottlenecks.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Robotic grasping, vision-language models, spatial reasoning, protocol engineering
+Robotic grasping, vision-language models, spatial reasoning, language-guided manipulation
 \end{IEEEkeywords}
 
 % Include sections
