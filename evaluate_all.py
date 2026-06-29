@@ -102,6 +102,7 @@ def parse_args(argv=None):
             "unified_hard_safe_no_id_repair",
             "eghc_guard_only_v1",
             "eghc_consensus_v1",
+            "eghc_consensus_qwen_native_v1",
         ],
         default="none",
     )
@@ -355,9 +356,17 @@ def _subset_config(
         }
 
     # EGHC guard-only policy
-    if subset_policy in {"eghc_guard_only_v1", "eghc_consensus_v1"}:
+    if subset_policy in {
+        "eghc_guard_only_v1",
+        "eghc_consensus_v1",
+        "eghc_consensus_qwen_native_v1",
+    }:
         return {
-            "prompt_variant": "legacy",
+            "prompt_variant": (
+                "eghc_qwen_native_json"
+                if subset_policy == "eghc_consensus_qwen_native_v1"
+                else "legacy"
+            ),
             "mimo_retry_mode": "none",
             "segmentation_variant": "eghc_mask_repair_v1",
             "routing_variant": "evidence_gated_cascade",
@@ -367,7 +376,10 @@ def _subset_config(
             "protocol_ablation": "full",
             "route_guard_variant": (
                 "eghc_consensus_v1"
-                if subset_policy == "eghc_consensus_v1"
+                if subset_policy in {
+                    "eghc_consensus_v1",
+                    "eghc_consensus_qwen_native_v1",
+                }
                 else "none"
             ),
         }
@@ -418,6 +430,7 @@ def _subset_config(
         "unified_hard_safe_no_id_repair",
         "eghc_guard_only_v1",
         "eghc_consensus_v1",
+        "eghc_consensus_qwen_native_v1",
     }:
         raise ValueError(f"Unknown subset_policy: {subset_policy}")
 

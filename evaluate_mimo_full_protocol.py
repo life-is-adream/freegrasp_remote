@@ -274,6 +274,7 @@ def run_full_protocol(args):
         "unified_hard_safe_no_id_repair",
         "eghc_guard_only_v1",
         "eghc_consensus_v1",
+        "eghc_consensus_qwen_native_v1",
     }
     resolved_uses_benchmark_difficulty = any(
         bool(config.get("uses_benchmark_difficulty", False))

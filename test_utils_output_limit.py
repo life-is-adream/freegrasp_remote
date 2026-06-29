@@ -424,6 +424,16 @@ class UtilsOutputLimitTest(unittest.TestCase):
         self.assertIn("The object_id must be one of the visible numeric object IDs", prompt)
         self.assertIn("[object_id, color class_name]", prompt)
 
+    def test_eghc_qwen_native_prompt_uses_strict_first_grasp_json(self):
+        prompt = self.utils.get_reasoning_system_prompt("eghc_qwen_native_json")
+
+        self.assertIn('"first_grasp_object_id"', prompt)
+        self.assertIn('"mask_query"', prompt)
+        self.assertIn('"blocker_first"', prompt)
+        self.assertIn("Return exactly one JSON object", prompt)
+        self.assertIn("Do not return target_candidates", prompt)
+        self.assertNotIn("[object_id, color class_name]", prompt)
+
     def test_process_grasping_result_accepts_supported_formats(self):
         self.assertEqual(
             self.utils.process_grasping_result("[3, blue screwdriver]", "target"),
@@ -436,6 +446,23 @@ class UtilsOutputLimitTest(unittest.TestCase):
         self.assertEqual(
             self.utils.process_grasping_result('{"object_id": 3, "class_name": "blue screwdriver"}', "target"),
             {"selected_object_id": 3, "class_name": "blue screwdriver"},
+        )
+
+    def test_process_grasping_result_accepts_top_level_first_grasp_json(self):
+        output = (
+            '{"first_grasp_object_id":2,"first_grasp_label":"white box",'
+            '"mask_query":"white box","route":"blocker_first","confidence":0.91}'
+        )
+
+        self.assertEqual(
+            self.utils.process_grasping_result(output, "the strawberry under a white box"),
+            {
+                "selected_object_id": 2,
+                "class_name": "white box",
+                "mask_query": "white box",
+                "route": "blocker_first",
+                "confidence": 0.91,
+            },
         )
 
     def test_process_grasping_result_accepts_roborefer_decision_json(self):

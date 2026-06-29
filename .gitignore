@@ -85,7 +85,12 @@ log/
 .codegraph/
 .code-review-graph/
 *.parquet
-*.npz
+
+# LaTeX build artifacts
+paper/*.aux
+paper/*.log
+paper/*.pdf
+paper/missfont.log
 *.tar
 *.pt
 *.pth

@@ -309,7 +309,12 @@ def process_grasping_result(output, text, protocol_ablation="full"):
                 include_reasoning_json = True
             else:
                 decision = data.get("decision") if isinstance(data.get("decision"), dict) else data
-                object_id = int(decision.get("object_id", decision.get("selected_object_id")))
+                object_id = int(
+                    decision.get(
+                        "first_grasp_object_id",
+                        decision.get("object_id", decision.get("selected_object_id")),
+                    )
+                )
                 include_reasoning_json = isinstance(data.get("decision"), dict)
             class_name = str(
                 decision.get(
@@ -323,6 +328,10 @@ def process_grasping_result(output, text, protocol_ablation="full"):
             }
             if "mask_query" in decision:
                 result["mask_query"] = str(decision["mask_query"]).lower()
+            if "route" in decision:
+                result["route"] = str(decision["route"]).lower()
+            if "confidence" in decision:
+                result["confidence"] = decision["confidence"]
             if include_reasoning_json:
                 result["reasoning_json"] = data
             return result
@@ -808,6 +817,24 @@ def get_reasoning_system_prompt(prompt_variant="legacy"):
         return _get_hard_blocker_first_prompt()
     if prompt_variant == "unified_hard_safe_v1_json":
         return _get_unified_hard_safe_v1_prompt()
+    if prompt_variant == "eghc_qwen_native_json":
+        return (
+            "You are an evidence-gated first-grasp planner for robotic bin picking with a parallel gripper. "
+            "You will see an RGB image with visible numeric object IDs and a text table of the same visible IDs. "
+            "Given the requested target description, choose the first visible object that should be grasped. "
+            "If the requested target is visible and free, choose the target itself. "
+            "If the requested target is blocked or occluded, choose one visible free object that directly blocks "
+            "or covers access to the target. Do not choose nearby distractors.\n\n"
+            "Return exactly one JSON object with this schema:\n"
+            "{\"first_grasp_object_id\": 0, \"first_grasp_label\": \"short noun phrase\", "
+            "\"mask_query\": \"short segmentation phrase\", \"route\": \"direct\", \"confidence\": 0.0}\n\n"
+            "Rules:\n"
+            "- first_grasp_object_id must be one of the visible numeric IDs in the prompt.\n"
+            "- route must be exactly \"direct\" when grasping the target itself, or \"blocker_first\" when removing a blocker.\n"
+            "- first_grasp_label and mask_query must name only the chosen visible object using a short visual noun phrase.\n"
+            "- Do not return target_candidates, blocking_relations, candidate_analysis, markdown, code fences, or explanations.\n"
+            "- The first character of the answer must be { and the last character must be }."
+        )
     if prompt_variant == "json":
         return (
             "You are a robotic system for bin picking, using a parallel gripper. "
