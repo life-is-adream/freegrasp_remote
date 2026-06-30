@@ -178,6 +178,75 @@ class EvidenceRouterEntrypointsTest(unittest.TestCase):
         self.assertEqual(calls[0][1]["feature_source"], "predicted")
         self.assertEqual(calls[0][1]["route_guard_variant"], "conservative_v1")
 
+    def test_evaluate_subset_checks_only_selected_rows_for_reused_molmo(self):
+        checked = []
+        processed = []
+
+        molmo_eval_stub = types.ModuleType("molmo_eval")
+        molmo_eval_stub.batch_process_molmo = lambda *args, **kwargs: None
+        reasoning_eval_stub = types.ModuleType("reasoning_eval")
+        reasoning_eval_stub.process_dataset = lambda *args, **kwargs: processed.append(args)
+        with patch.dict(
+            sys.modules,
+            {
+                "molmo_eval": molmo_eval_stub,
+                "reasoning_eval": reasoning_eval_stub,
+            },
+        ):
+            sys.modules.pop("evaluate_common", None)
+            evaluate_common = importlib.import_module("evaluate_common")
+
+        class FakeSubset:
+            def __init__(self, rows):
+                self.rows = list(rows)
+
+            def __len__(self):
+                return len(self.rows)
+
+            def head(self, n):
+                return FakeSubset(self.rows[:n])
+
+        full_df = FakeSubset(["scene_a", "scene_b", "scene_c"])
+        selected_df = FakeSubset(["scene_a", "scene_b"])
+
+        def fake_ensure(df, _molmo_dir):
+            checked.append(df.rows)
+
+        with tempfile.TemporaryDirectory() as tmpdir, patch.object(
+            evaluate_common,
+            "load_dataset",
+            return_value=full_df,
+        ), patch.object(
+            evaluate_common,
+            "prepare_subset",
+            return_value=selected_df,
+        ), patch.object(
+            evaluate_common,
+            "ensure_molmo_cache_exists",
+            side_effect=fake_ensure,
+        ), patch.object(
+            evaluate_common,
+            "process_dataset",
+            side_effect=lambda *args, **kwargs: processed.append(args),
+        ), patch.object(
+            evaluate_common,
+            "calculate_accuracy",
+            return_value=0.0,
+        ), patch.object(
+            evaluate_common,
+            "calculate_reasoning_accuracy",
+            return_value=0.0,
+        ):
+            evaluate_common.evaluate_subset(
+                "easy_no_ambi",
+                output_dir=tmpdir,
+                prepare_molmo=False,
+                max_rows=1,
+            )
+
+        self.assertEqual(checked, [["scene_a"]])
+        self.assertEqual(processed[0][0].rows, ["scene_a"])
+
     def test_mimo_pipeline_forwards_routing_to_evaluate_all(self):
         forwarded = []
         fake_client = types.SimpleNamespace(base_url="https://example.invalid")

@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 import shutil
@@ -117,6 +118,26 @@ def parse_args(argv=None):
         default="none",
     )
     parser.add_argument("--run-dir", default=None, help="Existing or new run directory.")
+    parser.add_argument(
+        "--subsets",
+        nargs="+",
+        choices=[
+            "easy_no_ambi",
+            "easy_yes_ambi",
+            "medium_no_ambi",
+            "medium_yes_ambi",
+            "hard_no_ambi",
+            "hard_yes_ambi",
+        ],
+        default=None,
+        help="Subset names to evaluate. Defaults to all six split-0 subsets.",
+    )
+    parser.add_argument(
+        "--max-rows-per-subset",
+        type=int,
+        default=None,
+        help="Debug only: evaluate at most this many rows from each selected subset.",
+    )
     parser.add_argument("--resume", action="store_true", help="Resume from existing out_*.json rows.")
     parser.add_argument("--no-resume", action="store_false", dest="resume")
 
@@ -656,17 +677,23 @@ def evaluate_pipeline(
     reuse_molmo=True,
     resume=True,
     run_dir=None,
+    subsets=None,
+    max_rows_per_subset=None,
 ):
     from evaluate_common import MOLMO_OUTPUT_DIR, evaluate_subset
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    run_dir = os.path.join("data/output", f"{model_name}_{timestamp}")
+    if run_dir is None:
+        run_dir = os.path.join("data/output", f"{model_name}_{timestamp}")
     os.makedirs(run_dir, exist_ok=True)
 
-    # Always force rerun: clear old Molmo output so all scenes are re-processed
-    if os.path.exists(MOLMO_OUTPUT_DIR):
-        print(f"🗑️  Clearing old Molmo output: {MOLMO_OUTPUT_DIR}")
-        shutil.rmtree(MOLMO_OUTPUT_DIR)
+    if reuse_molmo:
+        molmo_cache_policy = "reuse_existing"
+    else:
+        molmo_cache_policy = "regenerate_once"
+        if os.path.exists(MOLMO_OUTPUT_DIR):
+            print(f"Clearing old Molmo output: {MOLMO_OUTPUT_DIR}")
+            shutil.rmtree(MOLMO_OUTPUT_DIR)
     os.makedirs(MOLMO_OUTPUT_DIR, exist_ok=True)
 
     subset_names = [
@@ -677,6 +704,8 @@ def evaluate_pipeline(
         "hard_no_ambi",
         "hard_yes_ambi",
     ]
+    if subsets:
+        subset_names = list(subsets)
 
     scores = {}
     subset_configs = {}
@@ -705,6 +734,7 @@ def evaluate_pipeline(
             protocol_ablation=config.get("protocol_ablation", "full"),
             route_guard_variant=config.get("route_guard_variant", route_guard_variant),
             resume=resume,
+            max_rows=max_rows_per_subset,
         )
 
     resolved_route_guard_variants = {
@@ -738,10 +768,13 @@ def evaluate_pipeline(
         "subset_configs": subset_configs,
         "molmo_cache_policy": molmo_cache_policy,
         "resume": resume,
+        "subsets": subset_names,
+        "max_rows_per_subset": max_rows_per_subset,
         "timestamp": timestamp,
         "scores": scores,
     }
-    with open(os.path.join(run_dir, "summary.json"), "w") as f:
+    summary_path = os.path.join(run_dir, "summary.json")
+    with open(summary_path, "w") as f:
         json.dump(summary, f, indent=4)
 
     print(f"\n📊 Results saved to: {run_dir}")
@@ -768,4 +801,6 @@ if __name__ == "__main__":
         reuse_molmo=args.reuse_molmo,
         resume=args.resume,
         run_dir=args.run_dir,
+        subsets=args.subsets,
+        max_rows_per_subset=args.max_rows_per_subset,
     )

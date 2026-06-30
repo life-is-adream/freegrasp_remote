@@ -157,6 +157,51 @@ class ReasoningResumeTest(unittest.TestCase):
             self.assertEqual(details[0]["rsr_correct"], 1)
             self.assertEqual(details[0]["reasoning"]["retry_count"], 1)
 
+    def test_process_dataset_records_prediction_errors_without_crashing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            dataset_root = root / "npz"
+            molmo_root = root / "molmo"
+            dataset_root.mkdir()
+            molmo_root.mkdir()
+            output_path = root / "out_medium_yes_ambi.json"
+            details_path = root / "details_medium_yes_ambi.json"
+
+            gt_masks = np.ones((1, 2, 2), dtype=np.uint8)
+            np.savez(dataset_root / "404.npz", **{"instances_objects.npy": gt_masks})
+
+            df = pd.DataFrame(
+                [
+                    {
+                        "sceneId": 404,
+                        "queryObjId": 0,
+                        "annotation": "pick the blue block",
+                        "groundTruthObjIds": "0",
+                        "image": {"bytes": _image_bytes()},
+                    },
+                ]
+            )
+
+            prediction = {
+                "error": "ascii codec cannot encode characters",
+                "reasoning": {"failure_reason": "api_error"},
+            }
+            with patch("reasoning_eval.get_prediction_result", return_value=prediction):
+                process_dataset(
+                    df,
+                    dataset_root,
+                    molmo_root,
+                    output_path,
+                    resume=False,
+                    details_json_path=details_path,
+                )
+
+            results = json.loads(output_path.read_text())
+            self.assertEqual(results, [[404, 1, "pick the blue block", 0, 0]])
+            details = json.loads(details_path.read_text())
+            self.assertEqual(details[0]["error"], "ascii codec cannot encode characters")
+            self.assertEqual(details[0]["failure_reason"], "api_error")
+
 
 if __name__ == "__main__":
     unittest.main()

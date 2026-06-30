@@ -2,7 +2,7 @@ import os
 
 # Disable proxies and use HF mirror to prevent SSLEOFError
 for k in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY", "all_proxy"]:
-os.environ.pop(k, None)
+    os.environ.pop(k, None)
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 # Set DASHSCOPE_API_KEY in the environment before running DashScope calls.
 # Force PyTorch SDPA to NOT use flash_attn (cu123 flash-attn is incompatible with CUDA 12.4)
@@ -83,13 +83,20 @@ def evaluate_subset(
     feature_source: str = "none",
     protocol_ablation: str = "full",
     route_guard_variant: str = "none",
+    max_rows: int | None = None,
 ) -> dict:
     os.makedirs(MOLMO_OUTPUT_DIR, exist_ok=True)
 
     df = load_dataset()
-    batch_process_molmo(df, NPZ_DIR, MOLMO_OUTPUT_DIR)
-
     selected_subset = prepare_subset(df, subset_name, selected_split)
+    if max_rows is not None:
+        selected_subset = selected_subset.head(max_rows)
+
+    if prepare_molmo:
+        batch_process_molmo(selected_subset, NPZ_DIR, MOLMO_OUTPUT_DIR)
+    else:
+        ensure_molmo_cache_exists(selected_subset, MOLMO_OUTPUT_DIR)
+
     print(
         f"Total number of examples in [SPLIT {selected_split}] "
         f"of [SET {subset_name}]: {len(selected_subset)}"

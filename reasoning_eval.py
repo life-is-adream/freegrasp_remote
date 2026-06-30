@@ -168,8 +168,9 @@ def process_dataset(
         
         # Dataset object IDs start from 0, while pointed object IDs start from 1. Need to increment by 1.
         obj_id = int(obj_id) + 1
+        sample_key = _sample_key(scene_id, obj_id, annotation)
         
-        if (scene_id, obj_id, annotation) in processed_scenes:
+        if sample_key in processed_scenes:
             print(f"Skipping Scene {scene_id}, Object {obj_id}, already processed.")
             continue
         
