@@ -30,22 +30,46 @@ def load_summary(run_dir: Path) -> dict[str, Any]:
     return json.loads(summary_path.read_text())
 
 
-def metric_block(summary: dict[str, Any]) -> dict[str, Any]:
+def metric_block(summary: dict[str, Any], run_dir: Path) -> dict[str, Any]:
     block = summary.get("overall") or summary.get("aggregate")
     if not isinstance(block, dict):
-        raise ValueError("Summary must contain an 'overall' or 'aggregate' object")
+        raise ValueError(
+            f"Run {run_dir} summary must contain an 'overall' or 'aggregate' object"
+        )
     return block
 
 
-def as_int(summary: dict[str, Any], key: str, default: int | None = None) -> int:
-    value = summary.get(key, default)
-    if value is None:
-        raise ValueError(f"Missing required numeric field: {key}")
-    return int(value)
+def metric_value(metrics: dict[str, Any], run_dir: Path, key: str) -> Any:
+    if key not in metrics or metrics[key] is None:
+        raise ValueError(f"Run {run_dir} missing metric field: {key}")
+    return metrics[key]
 
 
-def as_percentage(value: Any) -> float:
-    number = float(value)
+def call_count(summary: dict[str, Any], run_dir: Path, key: str) -> int:
+    if key not in summary or summary[key] is None:
+        raise ValueError(f"Run {run_dir} missing call-count field: {key}")
+    try:
+        return int(summary[key])
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Run {run_dir} invalid call-count field {key}: {summary[key]!r}"
+        ) from exc
+
+
+def metric_int(metrics: dict[str, Any], run_dir: Path, key: str) -> int:
+    value = metric_value(metrics, run_dir, key)
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Run {run_dir} invalid metric field {key}: {value!r}") from exc
+
+
+def metric_percentage(metrics: dict[str, Any], run_dir: Path, key: str) -> float:
+    value = metric_value(metrics, run_dir, key)
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Run {run_dir} invalid metric field {key}: {value!r}") from exc
     if 0.0 <= number <= 1.0:
         return number * 100.0
     return number
@@ -53,21 +77,23 @@ def as_percentage(value: Any) -> float:
 
 def summarize_run(run_dir: Path) -> dict[str, str]:
     summary = load_summary(run_dir)
-    metrics = metric_block(summary)
-    n = int(metrics["n"])
+    metrics = metric_block(summary, run_dir)
+    n = metric_int(metrics, run_dir, "n")
     if n <= 0:
         raise ValueError(f"Run {run_dir} has non-positive n: {n}")
 
-    reasoning_calls = as_int(summary, "reasoning_calls", 0)
-    router_calls = as_int(summary, "router_calls", 0)
-    repair_calls = as_int(summary, "repair_calls", 0)
+    rsr = metric_percentage(metrics, run_dir, "rsr")
+    ssr = metric_percentage(metrics, run_dir, "ssr")
+    reasoning_calls = call_count(summary, run_dir, "reasoning_calls")
+    router_calls = call_count(summary, run_dir, "router_calls")
+    repair_calls = call_count(summary, run_dir, "repair_calls")
     total_calls = reasoning_calls + router_calls + repair_calls
 
     return {
         "run": run_dir.name,
         "n": str(n),
-        "rsr": f"{as_percentage(metrics['rsr']):.2f}",
-        "ssr": f"{as_percentage(metrics['ssr']):.2f}",
+        "rsr": f"{rsr:.2f}",
+        "ssr": f"{ssr:.2f}",
         "reasoning_calls": str(reasoning_calls),
         "router_calls": str(router_calls),
         "repair_calls": str(repair_calls),
