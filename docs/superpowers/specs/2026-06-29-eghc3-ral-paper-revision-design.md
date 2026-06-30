@@ -139,9 +139,10 @@ Avoid:
 | Qwen 235B / Qwen 37 split-0 attempts | model sensitivity appendix only |
 | prompt-only self-repair failures | negative ablation / discussion |
 
-## 6. Statistical Verification Still Required
+## 6. Statistical Verification Completed
 
-Before submission, add paired uncertainty estimates:
+Scene-clustered paired bootstrap has been computed for the controlled 900-row
+comparisons. Before submission, keep the following interpretation boundary:
 
 1. Pair each run by complete sample key:
    `(split, subset, row_index, scene_id, object_id, annotation)`.
@@ -160,10 +161,10 @@ Minimum table cells needed:
 
 | Comparison | Metric | Delta | 95% CI | p or bootstrap tail probability |
 |---|---|---:|---:|---:|
-| EGHC3_v3 - S0 | RSR | +3.00 pp | to compute | to compute |
-| EGHC3_v3 - S0 | SSR | +7.67 pp | to compute | to compute |
-| S1 - EGHC3_v3 | RSR | +6.55 pp | to compute | to compute |
-| S1 - EGHC3_v3 | SSR | +4.89 pp | to compute | to compute |
+| EGHC3_v3 - S0 | RSR | +3.00 pp | [0.00, 5.95] pp | 0.0266 |
+| EGHC3_v3 - S0 | SSR | +7.67 pp | [4.19, 11.33] pp | <0.0001 |
+| S1 - EGHC3_v3 | RSR | +6.56 pp | [3.41, 9.80] pp | 0.0001 |
+| S1 - EGHC3_v3 | SSR | +4.89 pp | [1.86, 7.95] pp | 0.0009 |
 
 ## 7. Claims That Are Safe
 
@@ -187,7 +188,9 @@ Minimum table cells needed:
   FreeGrasp protocol is rerun under the same cache and scoring code.
 - Do not present the original-paper baseline as paired with EGHC3_v3 unless
   row-level original predictions are available.
-- Do not claim significance until paired bootstrap/CI is computed.
+- Do not overstate significance: the controlled SSR gain is strongly supported,
+  but the RSR confidence interval touches 0.00 pp and should be described more
+  cautiously.
 - Do not imply that higher RSR automatically proves real-robot grasp success;
   the present evidence is benchmark reasoning and mask IoU.
 
@@ -225,7 +228,7 @@ Minimum table cells needed:
 - Table I: published FreeGrasp baseline, S0, EGHC3_v3.
 - Table II: S1 oracle upper bound.
 - Table III: per-subset failure analysis.
-- Add paired bootstrap/CI when computed.
+- Keep the paired bootstrap/CI table and cautious RSR interpretation.
 - Move old v10/S1 diagnostic narrative into a subsection named `Oracle headroom`.
 
 ### Discussion/conclusion
@@ -241,7 +244,7 @@ Minimum table cells needed:
 1. Save this design document.
 2. Revise the RAL LaTeX draft in `paper/`.
 3. Keep current result numbers fixed.
-4. Add bootstrap/CI as the next statistics task before final submission.
-5. After CI is available, update the abstract and table captions with deltas
-   and confidence intervals.
-
+4. Bootstrap/CI completed with scene-clustered paired resampling over 291
+   scene clusters.
+5. After final text polishing, update the abstract and table captions with
+   selected confidence intervals if space permits.

@@ -12,25 +12,25 @@
 
 \subsection{Main Results}
 
-Table~\ref{tab:main} shows the headline comparison. EGHC3\_v3 achieves 60.89\% RSR and 55.22\% SSR over 900 instructions. Relative to the reported original FreeGrasp GPT-4o baseline, this corresponds to approximately +13.6 percentage points RSR and +17.0 percentage points SSR. Relative to the controlled S0 original-protocol baseline, EGHC3\_v3 improves RSR by +3.00 percentage points and SSR by +7.67 percentage points.
+Table~\ref{tab:main} shows the headline comparison. EGHC3\_v3 achieves 60.89\% RSR and 55.22\% SSR over 900 instructions. The original FreeGrasp GPT-4o row is a reported prior-paper baseline, so we treat the approximately +13.6 percentage point RSR and +17.0 percentage point SSR differences as descriptive rather than paired. The controlled comparison is S0, which uses the same 900 rows and reused Molmo cache; against S0, EGHC3\_v3 improves RSR by +3.00 percentage points and SSR by +7.67 percentage points.
 
 \begin{table}[t]
 \centering
 \caption{Main FreeGraspData results. The original FreeGrasp row is the reported GPT-4o baseline from the prior paper; S0 and EGHC3\_v3 are controlled runs under the same reused Molmo cache.}
 \label{tab:main}
 \small
-\begin{tabular}{lcccc}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-Method & GT features & Difficulty label & RSR & SSR \\
+Method & GT & Diff. & RSR & SSR \\
 \midrule
-FreeGrasp GPT-4o~\cite{freegrasp} & No & No & 47.3 & 38.2 \\
-S0 original protocol & No & No & 57.89 & 47.56 \\
-\textbf{EGHC3\_v3 (ours)} & \textbf{No} & \textbf{No} & \textbf{60.89} & \textbf{55.22} \\
+FreeGrasp~\cite{freegrasp} & No & No & 47.3 & 38.2 \\
+S0 & No & No & 57.89 & 47.56 \\
+\textbf{EGHC3\_v3} & \textbf{No} & \textbf{No} & \textbf{60.89} & \textbf{55.22} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The larger gain in SSR than RSR indicates that EGHC does not only change the selected first-grasp object; it also improves the consistency between the chosen candidate and the final segmentation mask. This is important for robotic execution, where a correct target/blocker decision still requires an actionable mask.
+The larger gain in SSR than RSR indicates that EGHC does not only change the selected first-grasp object; it also improves the consistency between the chosen candidate and the final segmentation mask. This mask-level evidence is necessary but not sufficient for robotic execution, where benchmark IoU must still be validated in closed-loop grasp trials.
 
 \subsection{Oracle Headroom}
 
@@ -41,12 +41,12 @@ Table~\ref{tab:oracle} separates the deployable method from the oracle diagnosti
 \caption{Oracle upper bound. S1 is diagnostic only because it uses ground-truth features and benchmark difficulty labels during inference.}
 \label{tab:oracle}
 \small
-\begin{tabular}{lcccc}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-Method & GT features & Difficulty label & RSR & SSR \\
+Method & GT & Diff. & RSR & SSR \\
 \midrule
-EGHC3\_v3 (deployable evidence) & No & No & 60.89 & 55.22 \\
-S1 oracle diagnostic & Yes & Yes & 67.44 & 60.11 \\
+EGHC3\_v3 & No & No & 60.89 & 55.22 \\
+S1 oracle & Yes & Yes & 67.44 & 60.11 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -76,10 +76,48 @@ Hard, ambiguity & 150 & 34.00 & 26.67 \\
 
 \subsection{Failure Analysis}
 
-The stratum-level pattern suggests two different failure regimes. In easy scenes, EGHC usually resolves the requested target, so the remaining gap between RSR and SSR is consistent with instance-level mask ambiguity, missing masks, or masks that do not contain the selected Molmo point. In hard scenes, RSR itself is low; the dominant errors occur before mask evaluation, when the route or first-grasp ID does not match the physically relevant target/blocker relation.
+We further categorize all non-joint-success cases in the 900-sample EGHC3\_v3 run. A sample is counted as joint success only when both the first-grasp ID is acceptable and the mask reaches the IoU threshold. The taxonomy is mutually exclusive. If the ID is correct but the mask fails, we assign either \emph{correct reasoning, failed mask} or \emph{no usable mask}, depending on whether the segmentation backend produced a usable point-consistent mask. For reasoning failures, we use the benchmark first-grasp set to determine whether the target itself was an acceptable direct grasp; this separates wrong target instances, wrong blockers, direct grasps when a blocker was needed, and blocker-first decisions when direct target grasping was possible.
 
-Qualitative inspection should therefore be organized around two groups. Easy failures should show same-class or mask-IoU ambiguity. Hard failures should show wrong blocker selection, direct target selection when blocker removal was needed, or blocker selection when the target was directly accessible. This split keeps the discussion grounded: EGHC improves the decision contract, but it does not solve hard-scene visibility estimation.
+\begin{table}[t]
+\centering
+\caption{Failure taxonomy for EGHC3\_v3 over 900 samples. Counts are over 431 samples that were not jointly correct in both RSR and SSR. Categories are mutually exclusive.}
+\label{tab:failure_taxonomy}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Error type & Easy & Medium & Hard & Total \\
+\midrule
+Correct ID, failed mask & 7 & 8 & 10 & 25 \\
+Wrong target instance & 36 & 0 & 0 & 36 \\
+Wrong blocker & 0 & 38 & 125 & 163 \\
+Direct, blocker needed & 0 & 77 & 76 & 153 \\
+Blocker, direct possible & 0 & 0 & 0 & 0 \\
+No usable mask & 33 & 8 & 13 & 54 \\
+\midrule
+Total failures & 76 & 131 & 224 & 431 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:failure_taxonomy} shows that the remaining errors are not uniform across difficulty levels. In easy scenes, all failures are target-instance or mask related: 36 cases choose the wrong target instance, while 40 cases have a correct or otherwise plausible ID but fail at mask selection or point-consistent segmentation. This matches the high easy-scene RSR in Table~\ref{tab:strata}. In medium and hard scenes, the bottleneck moves earlier in the pipeline. Wrong blocker selection and direct grasping when blocker removal was required account for 115 of 131 medium failures and 201 of 224 hard failures. We observe no blocker-first errors when the benchmark target was directly graspable, which suggests that the conservative gate rarely invents blockers in easy direct cases; the dominant remaining limitation is instead missing or misidentifying true blockers under occlusion.
 
 \subsection{Statistical Verification}
 
-The current tables report frozen point estimates. Before submission, we will add paired, scene-clustered bootstrap confidence intervals for EGHC3\_v3 versus S0 and for S1 versus EGHC3\_v3. The paired key will include split, subset, row index, scene ID, query object ID, and annotation text. Until those intervals are added, significance language is intentionally avoided.
+We compute paired, scene-clustered bootstrap confidence intervals over the 900 aligned rows. The paired key includes split, stratum, row index, scene ID, query object ID, and annotation text; bootstrap resampling is clustered by scene ID to account for repeated visual evidence. Table~\ref{tab:bootstrap} reports paired deltas in percentage points. EGHC3\_v3 improves S0 by +3.00 pp RSR with a 95\% CI of [0.00, 5.95] pp and by +7.67 pp SSR with a 95\% CI of [4.19, 11.33] pp. We therefore treat SSR as the stronger controlled empirical gain and report RSR as a positive but more cautious gain. The S1 oracle diagnostic remains above EGHC3\_v3 by +6.56 pp RSR and +4.89 pp SSR, confirming measurable headroom from oracle visibility and routing evidence.
+
+\begin{table}[t]
+\centering
+\caption{Scene-clustered paired bootstrap confidence intervals over 900 aligned rows and 291 scene clusters. Deltas are percentage points; tail probability is the one-sided bootstrap probability that the paired delta is less than or equal to zero.}
+\label{tab:bootstrap}
+\small
+\begin{tabular}{@{}llccc@{}}
+\toprule
+Comparison & Metric & Delta & 95\% CI & Tail prob. \\
+\midrule
+EGHC3\_v3 $-$ S0 & RSR & +3.00 & [0.00, 5.95] & 0.0266 \\
+EGHC3\_v3 $-$ S0 & SSR & +7.67 & [4.19, 11.33] & $<$0.0001 \\
+S1 $-$ EGHC3\_v3 & RSR & +6.56 & [3.41, 9.80] & 0.0001 \\
+S1 $-$ EGHC3\_v3 & SSR & +4.89 & [1.86, 7.95] & 0.0009 \\
+\bottomrule
+\end{tabular}
+\end{table}
