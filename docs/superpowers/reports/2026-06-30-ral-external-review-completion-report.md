@@ -14,8 +14,8 @@ against S0 and bounded by an oracle diagnostic upper bound.
 | Task | Status | Evidence |
 |---|---|---|
 | Task 1: external-review triage | Complete | `docs/superpowers/reports/2026-06-30-ral-external-review-triage.md`; commits `4a2c339` and `b4b54ea`. |
-| Task 2: deterministic call-budget accounting | Complete | `scripts/summarize_call_budget.py`, `data/output/statistics/ral_call_budget_summary.md`, `data/output/statistics/ral_call_budget_summary.csv`; commits `a4c51d0`, `112b6a1`, `55f97ee`, plus the final negative-call-count guard added in this pass. |
-| Task 3: S0 budget-control feasibility | Complete as read-only feasibility check | No paid run was launched. Existing code does not contain a pure S0 two-call vote policy; adding it would touch the currently dirty evaluation path and should be done in a separate, explicit experiment pass. |
+| Task 2: deterministic call-budget accounting | Complete | `scripts/summarize_call_budget.py`, `data/output/statistics/ral_call_budget_summary.md`, `data/output/statistics/ral_call_budget_summary.csv`; commits `a4c51d0`, `112b6a1`, `55f97ee`, `2380663`, plus follow-up regression coverage for all fail-closed cases. |
+| Task 3: S0 budget-control feasibility | Complete as read-only feasibility check | No paid run was launched. Existing code does not contain a pure S0 two-call vote policy; the evaluation/debug plumbing is now committed in `4d24674`, so the budget-control policy should be implemented in a separate, explicit experiment pass. |
 | Final verification and state summary | Complete | This report records the final no-paid verification commands and remaining boundaries. |
 
 ## Call-Budget Evidence Freeze
@@ -37,37 +37,37 @@ inference.
 
 | Check | Result |
 |---|---|
-| Syntax | Passed: `python -m py_compile scripts/summarize_call_budget.py evaluate_all.py`. |
-| Unit tests | Passed: `python -m unittest test_summarize_call_budget test_evaluate_all_summary test_reasoning_resume test_evaluate_mimo_full_protocol test_evaluate_entrypoints` (`34` tests). |
+| Syntax | Passed: `.venv/bin/python -m py_compile scripts/summarize_call_budget.py evaluate_all.py evaluate_common.py reasoning_eval.py test_evidence_router_entrypoints.py test_reasoning_resume.py test_summarize_call_budget.py`. |
+| Unit tests | Passed: `.venv/bin/python -m unittest test_summarize_call_budget test_evaluate_all_summary test_reasoning_resume test_evaluate_mimo_full_protocol test_evaluate_entrypoints test_evidence_router_entrypoints` (`48` tests). |
 | Call-budget regeneration | Passed: regenerated `data/output/statistics/ral_call_budget_summary.md` and `.csv` with unchanged S0/EGHC values. |
 | Fail-closed validation | Passed: missing, non-integral, boolean, and negative call-count fields are rejected. |
 | LaTeX compile | Passed: `pdflatex -interaction=nonstopmode main.tex` twice in `paper/`, producing `paper/main.pdf`. |
 
 ## Final Fix Added In This Pass
 
-The call-budget script previously rejected missing, boolean, and non-integral
-fields but still accepted negative call counts. This pass adds a regression test
-(`test_summarize_call_budget.py`) and updates `call_count()` so negative
-`reasoning_calls`, `router_calls`, or `repair_calls` fail closed.
+The call-budget script now rejects missing, boolean, non-integral, and negative
+call-count fields. This pass expands `test_summarize_call_budget.py` so those
+manual validation cases are protected by repeatable regression tests, including
+missing metric fields and malformed `n` values.
 
 ## Current Workspace Boundary
 
-The repository is intentionally not fully clean. The following files were
-already dirty in the evaluation/debugging lane and should not be mixed into the
-call-budget/report commits without a separate review:
+The evaluation/debugging lane has been committed in `4d24674`, and the working
+tree should be clean after this report/test cleanup is committed. The following
+paths are now reviewed as part of that committed lane, but they should still not
+be mixed with the future S0 budget-control policy implementation:
 
 | Path | Current role |
 |---|---|
-| `evaluate_all.py` | Contains subset/max-row debug plumbing; this pass only restored the explicit `subset_names = [...]` assignment so entrypoint tests can still audit the fixed six-subset order. |
-| `evaluate_common.py` | Existing evaluation/resume/debugging lane changes. |
-| `reasoning_eval.py` | Existing evaluation/resume/debugging lane changes. |
-| `test_reasoning_resume.py` | Existing tests for the evaluation/resume/debugging lane. |
-| `models/langsam/GroundingDINO` | Existing submodule dirty marker. |
+| `evaluate_all.py` | Contains subset/max-row debug plumbing and Molmo reuse summary metadata. |
+| `evaluate_common.py` | Checks or regenerates Molmo only for selected rows, including debug subsets. |
+| `reasoning_eval.py` | Uses normalized resume keys and records prediction errors instead of crashing. |
+| `test_reasoning_resume.py` | Covers resume/error-recording behavior. |
+| `test_evidence_router_entrypoints.py` | Covers selected-row Molmo cache checks. |
 
 ## Recommended Next Step
 
-Do not start paid S0 budget-control inference from this mixed worktree. First
-isolate or commit the evaluation/debugging lane, then add a tested
-`original_protocol_budget2_vote` policy in a dedicated pass and launch only
-split 0 after explicit approval.
-
+Do not start paid S0 budget-control inference until the policy itself exists
+and passes a no-inference smoke test. The next dedicated pass should add a
+tested `original_protocol_budget2_vote` policy, verify it on a tiny dry run, and
+launch split 0 only after explicit approval.
