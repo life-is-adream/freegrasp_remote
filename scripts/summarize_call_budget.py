@@ -48,20 +48,24 @@ def metric_value(metrics: dict[str, Any], run_dir: Path, key: str) -> Any:
 def call_count(summary: dict[str, Any], run_dir: Path, key: str) -> int:
     if key not in summary or summary[key] is None:
         raise ValueError(f"Run {run_dir} missing call-count field: {key}")
-    try:
-        return int(summary[key])
-    except (TypeError, ValueError) as exc:
-        raise ValueError(
-            f"Run {run_dir} invalid call-count field {key}: {summary[key]!r}"
-        ) from exc
+    return integral_value(summary[key], run_dir, key, "call-count")
 
 
 def metric_int(metrics: dict[str, Any], run_dir: Path, key: str) -> int:
     value = metric_value(metrics, run_dir, key)
-    try:
+    return integral_value(value, run_dir, key, "metric")
+
+
+def integral_value(value: Any, run_dir: Path, key: str, field_kind: str) -> int:
+    if isinstance(value, bool):
+        raise ValueError(f"Run {run_dir} invalid {field_kind} field {key}: {value!r}")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
         return int(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"Run {run_dir} invalid metric field {key}: {value!r}") from exc
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    raise ValueError(f"Run {run_dir} invalid {field_kind} field {key}: {value!r}")
 
 
 def metric_percentage(metrics: dict[str, Any], run_dir: Path, key: str) -> float:
