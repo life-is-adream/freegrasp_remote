@@ -48,7 +48,10 @@ def metric_value(metrics: dict[str, Any], run_dir: Path, key: str) -> Any:
 def call_count(summary: dict[str, Any], run_dir: Path, key: str) -> int:
     if key not in summary or summary[key] is None:
         raise ValueError(f"Run {run_dir} missing call-count field: {key}")
-    return integral_value(summary[key], run_dir, key, "call-count")
+    value = integral_value(summary[key], run_dir, key, "call-count")
+    if value < 0:
+        raise ValueError(f"Run {run_dir} negative call-count field {key}: {value!r}")
+    return value
 
 
 def metric_int(metrics: dict[str, Any], run_dir: Path, key: str) -> int:
