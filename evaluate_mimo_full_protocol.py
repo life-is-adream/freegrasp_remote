@@ -201,6 +201,10 @@ def prepare_fresh_molmo_cache():
 
 
 def run_full_protocol(args):
+    from evaluate_mimo import ensure_unused_dashscope_key_for_import
+
+    ensure_unused_dashscope_key_for_import()
+
     from evaluate_all import _subset_config
     from evaluate_common import MOLMO_OUTPUT_DIR, evaluate_subset
     from evaluate_mimo import create_mimo_client, patch_freegrasp_client, validate_mimo_supports_image_input
@@ -247,6 +251,7 @@ def run_full_protocol(args):
     uses_benchmark_difficulty = args.subset_policy not in {
         "none",
         "original_protocol",
+        "original_protocol_budget2_vote",
         "automatic_evidence_v1",
         "automatic_no_blocker_first",
         "automatic_no_geometry_repair",
@@ -274,6 +279,9 @@ def run_full_protocol(args):
         "unified_hard_safe_no_id_repair",
         "eghc_guard_only_v1",
         "eghc_consensus_v1",
+        "eghc_consensus_no_mask_repair_v1",
+        "eghc_no_consensus_v1",
+        "eghc_consensus_no_blocker_first_v1",
         "eghc_consensus_qwen_native_v1",
     }
     resolved_uses_benchmark_difficulty = any(

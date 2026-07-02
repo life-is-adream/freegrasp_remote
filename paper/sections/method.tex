@@ -49,11 +49,11 @@ The direct route is optimized for visible, unblocked targets. The target-first r
 
 \subsection{Point- and Evidence-Constrained Mask Repair}
 
-After first-grasp planning, the selected visual phrase is passed to the segmentation backend. If several masks are returned, EGHC scores them by point consistency, confidence, and area plausibility:
+After first-grasp planning, the selected visual phrase is passed to the segmentation backend. The repair stage is deterministic rather than learned or tuned. Its dominant constraint is point consistency with the selected Molmo candidate:
 \begin{equation}
-\operatorname{score}(M)=\lambda_p \mathbf{1}[p_{i^{*}}\in M]+\lambda_c s(M)-\lambda_a A(M),
+\mathcal{M}_{p}=\{M\in\mathcal{M}:p_{i^{*}}\in M\}.
 \end{equation}
-where $s(M)$ is the segmentation confidence and $A(M)$ is normalized mask area. Point consistency is the dominant term, because the selected Molmo ID defines the intended visible instance. If the primary query fails, EGHC tries simplified noun phrases and ranked fallback candidates while preserving an explicit repair flag.
+If at least one returned mask contains the selected point, EGHC chooses the smallest containing mask after filtering masks whose normalized area exceeds 0.65; if all containing masks exceed this threshold, it still chooses the smallest containing mask rather than switching to a different instance. If no returned mask contains the point, the stage records a point-consistency failure and tries simplified noun phrases and ranked fallback candidates. Only when no point-consistent retry succeeds does it fall back to the closest available mask. When no Molmo point is available, the system selects the highest-logit LangSAM mask. Thus, point consistency acts as a hard priority, normalized area is a fixed plausibility filter, and segmentation confidence is used only in the no-point fallback case.
 
 \begin{figure}[t]
     \centering

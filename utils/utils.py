@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import torch
 import base64
 import numpy as np
@@ -25,6 +26,7 @@ from utils.scene_router import (
     vlm_scene_complexity_prompt,
     needs_vlm_fallback,
 )
+from utils.budget2_vote import select_budget2_vote_result
 
 try:
     import open3d as o3d
@@ -40,6 +42,7 @@ from utils.config import client, langsam_actor, api_key
 
 VALID_MIMO_RETRY_MODES = {
     "none",
+    "budget2_vote",
     "id_repair",
     "hard_review",
     "target_review",
@@ -74,6 +77,8 @@ VALID_PROTOCOL_ABLATIONS = {
     "no_hard_fallback",
     "no_ranked_candidates",
     "no_point_repair",
+    "no_mask_repair",
+    "no_consensus",
 }
 VALID_ROUTE_GUARD_VARIANTS = {
     "none",
@@ -223,6 +228,11 @@ def load_image_as_base64(image_path):
         base64_image = base64.b64encode(image_file.read()).decode('utf-8')
     return base64_image
 
+
+def strip_thinking_tags(output):
+    text = str(output or "")
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE)
+    return text.strip()
 
 
 def process_grasping_result(output, text, protocol_ablation="full"):
@@ -2268,6 +2278,27 @@ def get_prediction_result(
             output = _call_reasoning_model(messages, model_name, max_output_tokens)
             reasoning["raw_outputs"].append(output)
             result = process_grasping_result(output, text, protocol_ablation)
+            if mimo_retry_mode == "budget2_vote":
+                second_output = _call_reasoning_model(
+                    messages,
+                    model_name,
+                    max_output_tokens,
+                )
+                reasoning["raw_outputs"].append(second_output)
+                second_result = process_grasping_result(
+                    second_output,
+                    text,
+                    protocol_ablation,
+                )
+                result, vote_metadata = select_budget2_vote_result(
+                    result,
+                    second_result,
+                    visible_object_ids,
+                )
+                reasoning["budget2_vote"] = vote_metadata
+                reasoning["selected_raw_output_index"] = vote_metadata[
+                    "selected_raw_output_index"
+                ]
 
         if routing_variant == "evidence_gated_cascade" and route_assessment is not None:
             from utils.eghc_adjudicator import (
@@ -2535,9 +2566,17 @@ def get_prediction_result(
             result.pop("selected_object_id", None)
             selected_object_id = None
 
+        raw_output = reasoning["raw_outputs"][-1] if reasoning["raw_outputs"] else ""
+        selected_raw_output_index = reasoning.get("selected_raw_output_index")
+        if (
+            isinstance(selected_raw_output_index, int)
+            and 0 <= selected_raw_output_index < len(reasoning["raw_outputs"])
+        ):
+            raw_output = reasoning["raw_outputs"][selected_raw_output_index]
+
         reasoning.update(
             {
-                "raw_output": reasoning["raw_outputs"][-1] if reasoning["raw_outputs"] else "",
+                "raw_output": raw_output,
                 "selected_object_id": selected_object_id,
                 "class_name": result.get("class_name"),
                 "mask_query": result.get("mask_query"),
@@ -2573,7 +2612,7 @@ def get_prediction_result(
         reasoning.update(segmentation_metadata)
 
         if return_metadata:
-            return {"mask": goal_mask, "reasoning": reasoning_metadata}
+            return {"mask": goal_mask, "reasoning": reasoning}
         return goal_mask
 
     except Exception as e:

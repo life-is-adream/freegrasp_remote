@@ -117,6 +117,194 @@ class EvaluateAllSummaryTest(unittest.TestCase):
                 "eghc_qwen_native_json",
             )
 
+    def test_eghc_no_mask_repair_policy_only_switches_segmentation_to_baseline(self) -> None:
+        subset_scores = {
+            "easy_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "easy_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+        }
+        evaluate_common_stub = types.ModuleType("evaluate_common")
+        calls = {}
+
+        def fake_evaluate_subset(subset_name, **kwargs):
+            calls[subset_name] = kwargs
+            return subset_scores[subset_name]
+
+        evaluate_common_stub.evaluate_subset = fake_evaluate_subset
+        evaluate_common_stub.MOLMO_OUTPUT_DIR = "data/output/molmo_output"
+        sys.modules["evaluate_common"] = evaluate_common_stub
+        sys.modules.pop("evaluate_all", None)
+        evaluate_all = importlib.import_module("evaluate_all")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir)
+            evaluate_all.evaluate_pipeline(
+                model_name="mimo-v2.5",
+                max_output_tokens=1024,
+                subset_policy="eghc_consensus_no_mask_repair_v1",
+                reuse_molmo=True,
+                resume=False,
+                run_dir=run_dir,
+            )
+
+            for call in calls.values():
+                self.assertEqual(call["prompt_variant"], "legacy")
+                self.assertEqual(call["mimo_retry_mode"], "none")
+                self.assertEqual(call["segmentation_variant"], "baseline")
+                self.assertEqual(call["routing_variant"], "evidence_gated_cascade")
+                self.assertEqual(call["feature_source"], "deployable_predicted")
+                self.assertEqual(call["route_guard_variant"], "eghc_consensus_v1")
+                self.assertEqual(call["protocol_ablation"], "no_mask_repair")
+
+            summary = json.loads((run_dir / "summary.json").read_text())
+            self.assertEqual(summary["subset_policy"], "eghc_consensus_no_mask_repair_v1")
+            self.assertEqual(summary["segmentation_variant"], "baseline")
+            self.assertEqual(summary["protocol_ablation"], "no_mask_repair")
+            self.assertFalse(summary["uses_benchmark_difficulty"])
+            self.assertFalse(summary["uses_gt_features"])
+
+    def test_eghc_routing_ablation_policies_change_only_intended_route_component(self) -> None:
+        subset_scores = {
+            "easy_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "easy_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "medium_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_no_ambi": {"rsr": 0.1, "ssr": 0.1},
+            "hard_yes_ambi": {"rsr": 0.1, "ssr": 0.1},
+        }
+        cases = {
+            "eghc_no_consensus_v1": {
+                "route_guard_variant": "none",
+                "protocol_ablation": "no_consensus",
+            },
+            "eghc_consensus_no_blocker_first_v1": {
+                "route_guard_variant": "eghc_consensus_v1",
+                "protocol_ablation": "no_blocker_first",
+            },
+        }
+
+        for policy, expected in cases.items():
+            with self.subTest(policy=policy):
+                evaluate_common_stub = types.ModuleType("evaluate_common")
+                calls = {}
+
+                def fake_evaluate_subset(subset_name, **kwargs):
+                    calls[subset_name] = kwargs
+                    return subset_scores[subset_name]
+
+                evaluate_common_stub.evaluate_subset = fake_evaluate_subset
+                evaluate_common_stub.MOLMO_OUTPUT_DIR = "data/output/molmo_output"
+                sys.modules["evaluate_common"] = evaluate_common_stub
+                sys.modules.pop("evaluate_all", None)
+                evaluate_all = importlib.import_module("evaluate_all")
+
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    run_dir = Path(tmpdir)
+                    evaluate_all.evaluate_pipeline(
+                        model_name="mimo-v2.5",
+                        max_output_tokens=1024,
+                        subset_policy=policy,
+                        reuse_molmo=True,
+                        resume=False,
+                        run_dir=run_dir,
+                    )
+
+                    for call in calls.values():
+                        self.assertEqual(call["prompt_variant"], "legacy")
+                        self.assertEqual(call["mimo_retry_mode"], "none")
+                        self.assertEqual(call["segmentation_variant"], "eghc_mask_repair_v1")
+                        self.assertEqual(call["routing_variant"], "evidence_gated_cascade")
+                        self.assertEqual(call["feature_source"], "deployable_predicted")
+                        self.assertEqual(
+                            call["route_guard_variant"],
+                            expected["route_guard_variant"],
+                        )
+                        self.assertEqual(
+                            call["protocol_ablation"],
+                            expected["protocol_ablation"],
+                        )
+
+                    summary = json.loads((run_dir / "summary.json").read_text())
+                    self.assertEqual(summary["subset_policy"], policy)
+                    self.assertEqual(summary["segmentation_variant"], "eghc_mask_repair_v1")
+                    self.assertEqual(summary["protocol_ablation"], expected["protocol_ablation"])
+                    self.assertEqual(summary["route_guard_variant"], expected["route_guard_variant"])
+                    self.assertFalse(summary["uses_benchmark_difficulty"])
+                    self.assertFalse(summary["uses_gt_features"])
+
+    def test_original_protocol_budget2_vote_policy_is_no_gt_original_protocol_dry_run(self) -> None:
+        evaluate_common_stub = types.ModuleType("evaluate_common")
+        calls = {}
+
+        def fake_evaluate_subset(subset_name, **kwargs):
+            calls[subset_name] = kwargs
+            return {"rsr": 0.0, "ssr": 0.0}
+
+        evaluate_common_stub.evaluate_subset = fake_evaluate_subset
+        evaluate_common_stub.MOLMO_OUTPUT_DIR = "data/output/molmo_output"
+        sys.modules["evaluate_common"] = evaluate_common_stub
+        sys.modules.pop("evaluate_all", None)
+        evaluate_all = importlib.import_module("evaluate_all")
+
+        args = evaluate_all.parse_args(
+            [
+                "--subset-policy",
+                "original_protocol_budget2_vote",
+                "--subsets",
+                "easy_no_ambi",
+                "--max-rows-per-subset",
+                "1",
+                "--reuse-molmo",
+                "--no-resume",
+            ]
+        )
+        self.assertEqual(args.subset_policy, "original_protocol_budget2_vote")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir)
+            evaluate_all.evaluate_pipeline(
+                model_name="mimo-v2.5",
+                prompt_variant="direct_target",
+                max_output_tokens=713,
+                mimo_retry_mode="hard_review",
+                segmentation_variant="point_retry",
+                subset_policy=args.subset_policy,
+                routing_variant="predicted_geometry",
+                feature_source="oracle_feature",
+                reuse_molmo=args.reuse_molmo,
+                resume=args.resume,
+                run_dir=run_dir,
+                subsets=args.subsets,
+                max_rows_per_subset=args.max_rows_per_subset,
+            )
+
+            call = calls["easy_no_ambi"]
+            self.assertEqual(call["prompt_variant"], "legacy_old")
+            self.assertEqual(call["mimo_retry_mode"], "budget2_vote")
+            self.assertEqual(call["segmentation_variant"], "baseline")
+            self.assertEqual(call["routing_variant"], "none")
+            self.assertEqual(call["feature_source"], "none")
+            self.assertEqual(call["protocol_ablation"], "full")
+            self.assertEqual(call["max_rows"], 1)
+            self.assertFalse(call["prepare_molmo"])
+            self.assertFalse(call["resume"])
+
+            summary = json.loads((run_dir / "summary.json").read_text())
+            self.assertEqual(summary["subset_policy"], "original_protocol_budget2_vote")
+            self.assertFalse(summary["uses_benchmark_difficulty"])
+            self.assertFalse(summary["uses_gt_features"])
+            self.assertEqual(
+                summary["subset_configs"]["easy_no_ambi"]["mimo_retry_mode"],
+                "budget2_vote",
+            )
+            self.assertEqual(
+                summary["subset_configs"]["easy_no_ambi"]["feature_source"],
+                "none",
+            )
+
     def test_observed_best_subset_policy_overrides_only_hard_no_to_baseline(self) -> None:
         subset_scores = {
             "easy_no_ambi": {"rsr": 0.1, "ssr": 0.1},

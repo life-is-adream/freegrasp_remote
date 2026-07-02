@@ -17,8 +17,15 @@ torch.backends.cuda.enable_flash_sdp(False)
 processor = None
 model = None
 
+def _molmo_attention_kwargs():
+    attention_impl = os.environ.get("FREEGRASP_MOLMO_ATTN_IMPLEMENTATION", "eager").strip()
+    if not attention_impl or attention_impl.lower() in {"auto", "default"}:
+        return {}
+    return {"attn_implementation": attention_impl}
+
 def _load_molmo_model():
     global processor, model
+    attention_kwargs = _molmo_attention_kwargs()
     if processor is None:
         processor = AutoProcessor.from_pretrained(
             'allenai/Molmo-7B-D-0924',
@@ -31,7 +38,8 @@ def _load_molmo_model():
             'allenai/Molmo-7B-D-0924',
             trust_remote_code=True,
             torch_dtype=torch.float16,
-            device_map='auto'
+            device_map='auto',
+            **attention_kwargs
         )
     return processor, model
 
