@@ -1,0 +1,83 @@
+diff --git a/groundingdino/models/GroundingDINO/bertwarper.py b/groundingdino/models/GroundingDINO/bertwarper.py
+index f0cf977..5de0448 100644
+--- a/groundingdino/models/GroundingDINO/bertwarper.py
++++ b/groundingdino/models/GroundingDINO/bertwarper.py
+@@ -24,9 +24,44 @@ class BertModelWarper(nn.Module):
+         self.encoder = bert_model.encoder
+         self.pooler = bert_model.pooler
+ 
+-        self.get_extended_attention_mask = bert_model.get_extended_attention_mask
++        self._bert_get_extended_attention_mask = bert_model.get_extended_attention_mask
+         self.invert_attention_mask = bert_model.invert_attention_mask
+-        self.get_head_mask = bert_model.get_head_mask
++        self.get_head_mask = getattr(bert_model, "get_head_mask", self._get_head_mask)
++
++    def _module_dtype(self):
++        parameter = next(self.parameters(), None)
++        return parameter.dtype if parameter is not None else torch.float32
++
++    def get_extended_attention_mask(self, attention_mask, input_shape, device):
++        if hasattr(attention_mask, "to") and device is not None:
++            attention_mask = attention_mask.to(device=device)
++        try:
++            return self._bert_get_extended_attention_mask(
++                attention_mask,
++                input_shape,
++                dtype=self._module_dtype(),
++            )
++        except TypeError:
++            return self._bert_get_extended_attention_mask(
++                attention_mask,
++                input_shape,
++                device,
++            )
++
++    def _get_head_mask(self, head_mask, num_hidden_layers, is_attention_chunked=False):
++        if head_mask is None:
++            return [None] * num_hidden_layers
++        if head_mask.dim() == 1:
++            head_mask = head_mask.unsqueeze(0).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
++            head_mask = head_mask.expand(num_hidden_layers, -1, -1, -1, -1)
++        elif head_mask.dim() == 2:
++            head_mask = head_mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1)
++        if head_mask.dim() != 5:
++            raise ValueError(f"head_mask.dim must be 1, 2 or 5, got {head_mask.dim()}")
++        if is_attention_chunked:
++            head_mask = head_mask.unsqueeze(-1)
++        head_mask = head_mask.to(dtype=self._module_dtype())
++        return head_mask
+ 
+     def forward(
+         self,
+diff --git a/groundingdino/models/GroundingDINO/ms_deform_attn.py b/groundingdino/models/GroundingDINO/ms_deform_attn.py
+index 489d501..7f3d7a9 100644
+--- a/groundingdino/models/GroundingDINO/ms_deform_attn.py
++++ b/groundingdino/models/GroundingDINO/ms_deform_attn.py
+@@ -28,6 +28,7 @@ from torch.nn.init import constant_, xavier_uniform_
+ try:
+     from groundingdino import _C
+ except:
++    _C = None
+     warnings.warn("Failed to load custom C++ ops. Running on CPU mode Only!")
+ 
+ 
+@@ -38,6 +39,10 @@ def _is_power_of_2(n):
+     return (n & (n - 1) == 0) and n != 0
+ 
+ 
++def _should_use_custom_ms_deform_attn(value):
++    return _C is not None and torch.cuda.is_available() and value.is_cuda
++
++
+ class MultiScaleDeformableAttnFunction(Function):
+     @staticmethod
+     def forward(
+@@ -327,7 +332,7 @@ class MultiScaleDeformableAttention(nn.Module):
+                 )
+             )
+     
+-        if torch.cuda.is_available() and value.is_cuda:
++        if _should_use_custom_ms_deform_attn(value):
+             halffloat = False
+             if value.dtype == torch.float16:
+                 halffloat = True
