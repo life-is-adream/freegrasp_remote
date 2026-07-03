@@ -73,7 +73,7 @@ Source lookup date: 2026-07-04. Sources used were public paper pages, arXiv page
 | robopoint | Local entry says CoRL 2024. | arXiv 2406.10721 and PMLR page align with spatial affordance prediction for robotics; PMLR publication page may carry 2025 proceedings metadata. | Verify exact CoRL/PMLR citation format and year. |
 | relationship | Local entry says Humanoids 2018. | IEEE/arXiv-style sources align with Visual Manipulation Relationship Network for predicting manipulation relationships. | Keep. |
 | occlusion | Local entry says IEEE T-ASE 2024. | Publisher/repository snippets align with GOAL method, binocular stereo vision, occlusion relationships, segmentation/localization, and EPSON arm validation. | Keep, but verify exact author list, volume, issue, pages, DOI. |
-| chainofthought | Local entry says NeurIPS 2023. | arXiv/OpenReview/Semantic Scholar identify Chain-of-Thought Prompting Elicits Reasoning in Large Language Models as 2022-era work and NeurIPS 2022, not NeurIPS 2023. | Fix bibliography year/venue before final package. |
+| chainofthought | Local entry previously said NeurIPS 2023; paper/main.tex now says NeurIPS 2022. | arXiv/OpenReview/Semantic Scholar identify Chain-of-Thought Prompting Elicits Reasoning in Large Language Models as 2022-era work and NeurIPS 2022, not NeurIPS 2023. | Fixed local bibliography year to NeurIPS 2022; still add DOI/proceedings metadata if desired. |
 
 External source URLs consulted:
 
@@ -97,5 +97,5 @@ External source URLs consulted:
 
 - Claim-to-support matrix: Done for local manuscript and local artifacts.
 - Citation key presence: Done.
-- External metadata/source verification: Core cited references spot-checked; remaining work is exact BibTeX/DOI/page metadata cleanup and ongoing check that any future references are cited.
-- Final decision: T10 is materially started with local claim mapping and core external spot-checks; it is not fully submission-ready until bibliography metadata is corrected and uncited entries are resolved.
+- External metadata/source verification: Core cited references spot-checked; CoT year and uncited bibliography cleanup were applied. Remaining work is exact BibTeX/DOI/page metadata cleanup and ongoing checks if references change.
+- Final decision: T10 has local claim mapping, core external spot-checks, CoT year correction, and uncited-entry cleanup. It is not fully submission-ready only in the sense that exact DOI/page/proceedings metadata should still be polished before upload.
