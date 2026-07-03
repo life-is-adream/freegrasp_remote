@@ -14,7 +14,7 @@ We evaluate two binary outcomes. Reasoning success rate (RSR) measures whether t
 
 EGHC uses only deployment-available inference evidence. The evidence packet contains Molmo candidate IDs and points, predicted masks or boxes, predicted spatial relations, parser validity flags, and route-specific consistency signals. It does not contain ground-truth semantic labels, ground-truth instance masks, benchmark difficulty labels, or Molmo-to-ground-truth mappings.
 
-This boundary is important because previous v10/S1 experiments used annotation-derived semantic and geometric features. Those runs remain useful for measuring oracle headroom, but they are not treated as deployable method results. EGHC3\_v3 is the frozen main method because its manifest records \texttt{feature\_source=deployable\_predicted}, \texttt{uses\_gt\_features=false}, and \texttt{uses\_benchmark\_difficulty=false}.
+This boundary is important because earlier v10/S1 diagnostic experiments used annotation-derived semantic and geometric features. Those runs remain useful for measuring oracle headroom, but they are not treated as deployable method results. EGHC3\_v3 is the frozen main method because its manifest records \texttt{feature\_source=deployable\_predicted}, \texttt{uses\_gt\_features=false}, and \texttt{uses\_benchmark\_difficulty=false}.
 
 \subsection{Evidence-Gated Hierarchical Consensus Routing}
 

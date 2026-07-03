@@ -4,6 +4,23 @@ Scope: first-pass local-file audit for citation readiness, internal review, doub
 
 Protected files not edited in this pass: paper/results_main_table.md, paper/failure_analysis.md, paper/ablation_table.md.
 
+## Post-closeout update
+
+After the first-pass readiness inventory, the following files were created and should be treated as the current follow-on audit artifacts:
+
+- paper/results_main_table.md
+- paper/main_experiment_provenance_run_log.md
+- paper/ablation_table.md
+- paper/failure_analysis.md
+- paper/citation_claim_audit.md
+- paper/internal_review_report.md
+- paper/double_blind_package_check.md
+- paper/submission_package_manifest.md
+
+The item-level rows below are preserved as the original first-pass inventory. For current T10/T11/T12 status, use the dedicated audit files above.
+
+Current package-fix update: manuscript self-reference wording has been neutralized, the Chain-of-Thought bibliography year has been corrected, the unsupported ThinkGrasp hard-scene wording has been softened, figure PDFs have been regenerated without Type 3 fonts, and `paper/main.pdf` has been rebuilt. The 15 uncited manual bibliography entries were removed from `paper/main.tex`.
+
 ## 1. Citation audit TODO / risks
 
 | Status | Item | Local evidence path | Notes / next action |

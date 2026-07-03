@@ -16,6 +16,8 @@ import numpy as np
 plt.style.use('seaborn-v0_8-whitegrid')
 plt.rcParams['font.size'] = 10
 plt.rcParams['font.family'] = 'serif'
+plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['ps.fonttype'] = 42
 
 # Paths
 ABLMAT_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'output', 'ablation_matrix')

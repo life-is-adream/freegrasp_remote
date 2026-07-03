@@ -2,7 +2,7 @@
 
 \subsection{VLM-based Robotic Grasping}
 
-Recent work has explored using Vision-Language Models for robotic grasping tasks. ThinkGrasp~\cite{thinkgrasp} uses GPT-4o for strategic part grasping in clutter, but struggles with hard scenes where objects are heavily occluded. FreeGrasp~\cite{freegrasp} introduced mark-based visual prompting with Molmo~\cite{molmo} for object detection and GPT-4o for grasp reasoning, achieving strong performance but with limited robustness in occluded scenes. MOKA~\cite{moka} proposes mark-based visual prompting for open-world robotic manipulation. Our work builds on these approaches by making the target/blocker decision contract explicit and auditable.
+Recent work has explored using Vision-Language Models for robotic grasping tasks. ThinkGrasp~\cite{thinkgrasp} uses GPT-4o for strategic part grasping in heavy clutter by reasoning about obstructing objects over multiple steps. FreeGrasp~\cite{freegrasp} introduced mark-based visual prompting with Molmo~\cite{molmo} for object detection and GPT-4o for grasp reasoning, achieving strong performance while exposing the need for clearer target/blocker failure localization. MOKA~\cite{moka} proposes mark-based visual prompting for open-world robotic manipulation. Our work builds on these approaches by making the target/blocker decision contract explicit and auditable.
 
 \subsection{Structured Reasoning Protocols for VLMs}
 
