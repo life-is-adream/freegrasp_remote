@@ -93,9 +93,25 @@ External source URLs consulted:
 - GOAL/occlusion-aware ally: https://research.buaa.edu.cn/en/publications/grasping-with-occlusion-aware-ally-method-in-complex-scenes/
 - Chain-of-thought arXiv: https://arxiv.org/abs/2201.11903
 
+## Literature integration metadata checks
+
+| Key | Status | Source checked | Manuscript claim supported | Remaining caveat |
+|---|---|---|---|---|
+| `graspmolmo` | verified | arXiv 2505.13441; PMLR/CoRL 2025 page; project page | Task-oriented Molmo fine-tuning with PRISM synthetic data. | CoRL citation kept compact; page range available in PMLR if final formatting needs it. |
+| `graspcot` | verified | arXiv 2503.16013; official GitHub | Physical-property CoT reasoning for flexible 6-DoF grasp instructions. | Venue left as arXiv to avoid unverified proceedings claim. |
+| `graspvla` | verified | arXiv 2505.03233; project/GitHub pages | VLA grasping foundation model pretrained on large synthetic action data. | Used only as design-space contrast, not as a direct baseline. |
+| `maplegrasp` | verified | arXiv 2506.06535; GitHub | Mask-guided feature pooling for language-driven efficient robotic grasping. | Metrics not compared directly with EGHC. |
+| `realvlgr1` | verified | arXiv 2603.14880; CVPR 2026 open-access page; GitHub | Visual-language grounding benchmark with masks, grasp poses, and contact points. | No claim that EGHC evaluates on this benchmark. |
+| `vcotgrasp` | verified | arXiv 2510.05827; project page | Visual CoT/foundation-model contrast for language-driven grasp generation. | Used as literature contrast only. |
+| `dexgraspvla` | verified | arXiv 2502.20900; AAAI 2026 page; project page | Hierarchical VLA contrast for dexterous grasping. | Not a FreeGraspData baseline. |
+| `gloverpp` | verified | arXiv 2505.11865; project page | Affordance learning and global-to-local representation context. | Used for affordance/grounding context only. |
+| `rtgrasp` | verified | arXiv 2402.06798; project/OpenReview pages | Reasoning grasping from indirect verbal instructions. | Bibkey retained as `rtgrasp` for manuscript brevity. |
+| `graspclutter6d` | verified | arXiv 2504.06866; project/API pages | Real clutter benchmark motivating segmentation and occlusion bottlenecks. | No claim that EGHC uses this dataset. |
+
+
 ## T10 closeout status
 
 - Claim-to-support matrix: Done for local manuscript and local artifacts.
-- Citation key presence: Done.
+- Citation key presence: Done after literature integration edits; current check reports 21 cites, 21 bibitems, missing [], and uncited [].
 - External metadata/source verification: Core cited references spot-checked; CoT year and uncited bibliography cleanup were applied. Remaining work is exact BibTeX/DOI/page metadata cleanup and ongoing checks if references change.
 - Final decision: T10 has local claim mapping, core external spot-checks, CoT year correction, and uncited-entry cleanup. It is not fully submission-ready only in the sense that exact DOI/page/proceedings metadata should still be polished before upload.

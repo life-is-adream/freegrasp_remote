@@ -24,7 +24,7 @@
 \maketitle
 
 \begin{abstract}
-Free-form language-guided grasping requires a robot to resolve the instructed target, determine whether that target is immediately graspable, and select either the target or a visible blocker as the first grasp. Existing vision-language pipelines often collapse these decisions into a direct object answer, which makes target confusion, blocker mistakes, and mask failures difficult to separate. We present Evidence-Gated Hierarchical Consensus Routing (EGHC), a deployable extension of the FreeGrasp decision contract. EGHC builds an inference-time evidence packet from marked Molmo candidates, predicted spatial and mask evidence, and route-specific consistency checks; it then gates direct, target-first, and blocker-first reasoning through a hierarchical consensus procedure and applies point-constrained mask repair. On 900 FreeGraspData instructions, the frozen EGHC3\_v3 configuration achieves 60.89\% reasoning success rate (RSR) and 55.22\% segmentation success rate (SSR), descriptively higher than the reported original FreeGrasp GPT-4o baseline by approximately +13.6 pp RSR and +17.0 pp SSR. Against the controlled same-cache S0 FreeGrasp-protocol baseline, EGHC3\_v3 improves SSR by +7.67 pp (95\% CI [4.19, 11.33]) and yields a smaller positive RSR delta of +3.00 pp (95\% CI [0.00, 5.95]) while using no ground-truth features or benchmark difficulty labels. An oracle S1 upper bound reaches 67.44\% RSR and 60.11\% SSR, indicating remaining headroom from better visibility and blocker evidence. The results support auditable evidence-gated routing over direct VLM answering, with the strongest controlled evidence in SSR, while showing that hard-scene blocker and instance ambiguity remain open bottlenecks.
+Free-form language-guided grasping in clutter requires more than choosing the object named by an instruction. A robot must resolve the intended target, decide whether the target or a visible blocker should be grasped first, and produce a mask that is consistent with that decision. Recent task-oriented grasping and vision-language-action systems improve language-conditioned grasp prediction, but aggregate success rates often hide whether failures arise from target identity, obstruction reasoning, or segmentation. We present Evidence-Gated Hierarchical Consensus Routing (EGHC), an inference-time routing contract for FreeGrasp-style marked candidates rather than an end-to-end action foundation model. EGHC builds a deployment-available evidence packet, gates direct, target-first, and blocker-first reasoning through hierarchical consensus, and applies point-constrained mask repair. On 900 FreeGraspData instructions, the frozen no-ground-truth EGHC3\_v3 configuration achieves 60.89\% reasoning success rate (RSR) and 55.22\% segmentation success rate (SSR). Against a controlled same-cache S0 baseline, EGHC3\_v3 improves SSR by +7.67 pp (95\% CI [4.19, 11.33]) and yields a smaller positive RSR delta of +3.00 pp (95\% CI [0.00, 5.95]). The results support auditable target/blocker routing as a practical way to localize failures in cluttered language-guided grasping, with the strongest controlled evidence in SSR and a remaining hard-scene bottleneck in blocker and visibility reasoning.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -41,15 +41,25 @@ Robotic grasping, vision-language models, spatial reasoning, language-guided man
 \begin{thebibliography}{99}
 \bibitem{freegrasp} R. Jiao et al., ``Free-form language-based robotic reasoning and grasping,'' in \emph{IROS}, 2025.
 \bibitem{thinkgrasp} Y. Qian et al., ``ThinkGrasp: A vision-language system for strategic part grasping in clutter,'' in \emph{CoRL}, 2024.
+\bibitem{graspmolmo} A. Deshpande et al., ``GraspMolmo: Generalizable task-oriented grasping via large-scale synthetic data generation,'' in \emph{CoRL}, 2025.
+\bibitem{graspcot} X. Chu et al., ``GraspCoT: Integrating physical property reasoning for 6-DoF grasping under flexible language instructions,'' arXiv:2503.16013, 2025.
+\bibitem{rtgrasp} S. Jin, J. Xu, Y. Lei, and L. Zhang, ``Reasoning grasping via multimodal large language model,'' in \emph{CoRL}, 2024.
+\bibitem{maplegrasp} V. Bhat, N. Patel, P. Krishnamurthy, R. Karri, and F. Khorrami, ``MapleGrasp: Mask-guided feature pooling for language-driven efficient robotic grasping,'' arXiv:2506.06535, 2025.
+\bibitem{graspclutter6d} S. Back et al., ``GraspClutter6D: A large-scale real-world dataset for robust perception and grasping in cluttered scenes,'' arXiv:2504.06866, 2025.
+\bibitem{realvlgr1} L. Li, L. Zhang, and Y. Shen, ``RealVLG-R1: A large-scale real-world visual-language grounding benchmark for robotic perception and manipulation,'' in \emph{CVPR}, 2026.
 \bibitem{molmo} M. Deitke et al., ``Molmo and PixMo: Open weights and open data for state-of-the-art multimodal models,'' arXiv:2409.17146, 2024.
 \bibitem{chainofthought} J. Wei et al., ``Chain-of-thought prompting elicits reasoning in large language models,'' in \emph{NeurIPS}, 2022.
-\bibitem{spatialvlm} B. Chen et al., ``SpatialVLM: Endowing vision-language models with spatial reasoning capabilities,'' in \emph{CVPR}, 2024.
-\bibitem{robopoint} W. Yuan et al., ``Robopoint: A vision-language model for spatial affordance prediction in robotics,'' in \emph{CoRL}, 2024.
 \bibitem{setofmark} J. Yang et al., ``Set-of-mark prompting unleashes extraordinary visual grounding in GPT-4V,'' arXiv:2310.11441, 2023.
 \bibitem{moka} F. Liu et al., ``MOKA: Open-world robotic manipulation through mark-based visual prompting,'' in \emph{RSS}, 2024.
 \bibitem{groundingdino} S. Liu et al., ``Grounding DINO: Marrying DINO with grounded pre-training for open-set object detection,'' in \emph{ECCV}, 2024.
+\bibitem{spatialvlm} B. Chen et al., ``SpatialVLM: Endowing vision-language models with spatial reasoning capabilities,'' in \emph{CVPR}, 2024.
+\bibitem{robopoint} W. Yuan et al., ``Robopoint: A vision-language model for spatial affordance prediction in robotics,'' in \emph{CoRL}, 2024.
 \bibitem{relationship} H. Zhang et al., ``Visual manipulation relationship network for autonomous robotics,'' in \emph{Humanoids}, 2018.
 \bibitem{occlusion} L. Li et al., ``Grasping with occlusion-aware ally method in complex scenes,'' IEEE Trans. Autom. Sci. Eng., 2024.
+\bibitem{graspvla} S. Deng et al., ``GraspVLA: A grasping foundation model pre-trained on billion-scale synthetic action data,'' arXiv:2505.03233, 2025.
+\bibitem{vcotgrasp} H. Zhang et al., ``VCoT-Grasp: Grasp foundation models with visual chain-of-thought reasoning for language-driven grasp generation,'' arXiv:2510.05827, 2025.
+\bibitem{dexgraspvla} Y. Zhong et al., ``DexGraspVLA: A vision-language-action framework towards general dexterous grasping,'' in \emph{AAAI}, 2026.
+\bibitem{gloverpp} T. Ma et al., ``GLOVER++: Unleashing the potential of affordance learning from human behaviors for robotic manipulation,'' arXiv:2505.11865, 2025.
 \end{thebibliography}
 
 \end{document}
