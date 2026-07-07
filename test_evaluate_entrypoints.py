@@ -121,6 +121,32 @@ class EvaluateEntrypointsTest(unittest.TestCase):
             "evaluate_all.py should reuse data/output/molmo_output unless --regenerate-molmo is explicit",
         )
 
+    def test_no_verifier_ablation_is_exposed_end_to_end(self) -> None:
+        evaluate_all_tree = ast.parse((PROJECT_ROOT / "evaluate_all.py").read_text())
+        full_protocol_tree = ast.parse((PROJECT_ROOT / "evaluate_mimo_full_protocol.py").read_text())
+        utils_tree = ast.parse((PROJECT_ROOT / "utils" / "utils.py").read_text())
+
+        evaluate_all_strings = {
+            node.value
+            for node in ast.walk(evaluate_all_tree)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+        full_protocol_strings = {
+            node.value
+            for node in ast.walk(full_protocol_tree)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+        utils_strings = {
+            node.value
+            for node in ast.walk(utils_tree)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+
+        self.assertIn("eghc_consensus_no_verifier_v1", evaluate_all_strings)
+        self.assertIn("eghc_consensus_no_verifier_v1", full_protocol_strings)
+        self.assertIn("no_verifier", utils_strings)
+        self.assertIn("skipped_no_verifier_ablation", utils_strings)
+
 
 if __name__ == "__main__":
     unittest.main()

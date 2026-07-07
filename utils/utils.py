@@ -79,6 +79,7 @@ VALID_PROTOCOL_ABLATIONS = {
     "no_point_repair",
     "no_mask_repair",
     "no_consensus",
+    "no_verifier",
 }
 VALID_ROUTE_GUARD_VARIANTS = {
     "none",
@@ -301,15 +302,25 @@ def process_grasping_result(output, text, protocol_ablation="full"):
             
             if isinstance(data.get("first_grasp_planning"), dict):
                 decision = data["first_grasp_planning"]
+                repair_source = None
+                object_id_value = decision.get(
+                    "first_grasp_object_id",
+                    decision.get("object_id", decision.get("selected_object_id")),
+                )
+                if (
+                    object_id_value is None
+                    and decision.get("should_grasp_target_directly") is True
+                    and isinstance(data.get("target_resolution"), dict)
+                ):
+                    object_id_value = data["target_resolution"].get("target_object_id")
+                    repair_source = "target_resolution_direct_target"
                 object_id = int(
-                    decision.get(
-                        "first_grasp_object_id",
-                        decision.get("object_id", decision.get("selected_object_id")),
-                    )
+                    object_id_value
                 )
                 include_reasoning_json = True
             elif isinstance(data.get("first_grasp_decision"), dict):
                 decision = data["first_grasp_decision"]
+                repair_source = None
                 object_id = int(
                     decision.get(
                         "first_grasp_object_id",
@@ -319,6 +330,7 @@ def process_grasping_result(output, text, protocol_ablation="full"):
                 include_reasoning_json = True
             else:
                 decision = data.get("decision") if isinstance(data.get("decision"), dict) else data
+                repair_source = None
                 object_id = int(
                     decision.get(
                         "first_grasp_object_id",
@@ -344,6 +356,8 @@ def process_grasping_result(output, text, protocol_ablation="full"):
                 result["confidence"] = decision["confidence"]
             if include_reasoning_json:
                 result["reasoning_json"] = data
+            if repair_source:
+                result["repair_source"] = repair_source
             return result
         except (TypeError, ValueError, json.JSONDecodeError):
             pass
@@ -2321,7 +2335,7 @@ def get_prediction_result(
                 "route_guard_variant": route_guard_variant,
                 "evaluation_subset": evaluation_subset,
             }
-            if should_trigger_adjudication(
+            if protocol_ablation != "no_verifier" and should_trigger_adjudication(
                 assessment=route_assessment,
                 route_decision=route_decision,
                 plan=plan,
@@ -2367,6 +2381,13 @@ def get_prediction_result(
                         "mask_query",
                         result["class_name"],
                     ).lower()
+            elif protocol_ablation == "no_verifier":
+                reasoning["qwen_adjudication"] = {
+                    "accepted": False,
+                    "decision": "skipped_no_verifier_ablation",
+                    "plan": dict(plan),
+                    "reason": "protocol_ablation=no_verifier",
+                }
 
         prompt_variant = active_prompt_variant
         reasoning["prompt_variant"] = active_prompt_variant

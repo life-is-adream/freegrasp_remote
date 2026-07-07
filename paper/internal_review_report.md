@@ -63,3 +63,48 @@ Status: T11 first strict reviewer simulation for the current RA-L manuscript pac
 - Clean-checkout reproducibility of the main run: unsupported because manifest records dirty worktree and raw console run log is absent.
 - Strong RSR improvement claim: weak; state as smaller positive delta with CI lower bound at 0.00 pp.
 - Related-work statements about exact model capabilities or failure modes: require source-level verification before final submission.
+
+## Post-no-verifier re-review (2026-07-07)
+
+Status: Final internal re-review after completing and auditing the `eghc_consensus_no_verifier_v1` split-0 ablation. This section updates the 2026-07-04 review with the new no-verifier evidence and current diff-risk assessment.
+
+### Evidence added
+
+- Run directory: `data/output/eghc_consensus_no_verifier_split0`.
+- Audit note: `paper/no_verifier_ablation_run_log.md`.
+- `summary.json` is present and records `subset_policy=eghc_consensus_no_verifier_v1`, `protocol_ablation=no_verifier`, `feature_source=deployable_predicted`, `uses_gt_features=false`, and `uses_benchmark_difficulty=false`.
+- Detail-row audit: 300 rows total; RSR 160/300 (53.33%); SSR 148/300 (49.33%); 2 runtime errors retained as failed samples.
+- Subset counts: easy_no_ambi 47/38 RSR/SSR, easy_yes_ambi 44/44, medium_no_ambi 25/23, medium_yes_ambi 21/22, hard_no_ambi 14/12, hard_yes_ambi 9/9.
+- Verifier boundary: all 300 rows carry `reasoning.protocol_ablation=no_verifier`; 299 rows record `qwen_adjudication.decision=skipped_no_verifier_ablation`; one hard_no_ambi runtime-error row failed before adjudication metadata and is counted as failure.
+- Comparison used in manuscript: EGHC3_v3 split-0 is 61.00% RSR and 56.00% SSR; S0 split-0 is 58.33% RSR and 47.67% SSR; no-verifier split-0 is 53.33% RSR and 49.33% SSR.
+
+### Editorial decision update
+
+Decision remains internal Minor-to-Major Revision rather than Accept, because real-robot validation, clean-run provenance, and citation metadata remain unresolved. However, the specific concern that the Qwen verifier is only an unisolated extra-call budget is materially reduced.
+
+The no-verifier row is appropriate to keep in the manuscript as split-0 mechanism evidence. The current wording in the experiments section is acceptable because it says the verifier "appears to contribute" useful first-grasp corrections rather than claiming full causal proof over all 900 examples.
+
+### Diff-review findings
+
+- No P0/P1 issue was found in the no-verifier changed scope after reviewing the implementation boundary, result artifacts, and manuscript wording.
+- The no-verifier policy is traceable through `evaluate_all.py`, `evaluate_mimo_full_protocol.py`, `reasoning_eval.py`, and `utils/utils.py`, and the saved rows confirm the verifier path was skipped rather than silently invoked.
+- The parser repair in `utils/utils.py` is defensible only as a narrow direct-target repair: it should remain limited to cases where `target_resolution.target_object_id` supplies a valid object id, so it does not silently accept arbitrary malformed IDs.
+- The LangSAM/GroundingDINO compatibility edits are vendored-model changes and should be mentioned in reproducibility notes if this branch is submitted or archived; they are not paper-claim changes.
+- Tests covering resume behavior, output-limit expectations, entrypoints, LangSAM compatibility, ms-deform-attn fallback, and adjudicator behavior previously passed as 71 tests OK. These tests support the implementation, but they do not replace final clean-checkout reproducibility.
+
+### Manuscript-risk judgement after no-verifier
+
+- Keep the no-verifier result in Table II and the accompanying one-sentence interpretation.
+- Do not expand the claim beyond split-0. Avoid "proves", "causal", "full benchmark", or "general verifier contribution" wording.
+- Keep the strongest claim as: constrained verification appears to recover useful first-grasp corrections under the same deployable predicted-feature setting.
+- Do not imply the no-verifier row is a new baseline system; it is an ablation of EGHC3_v3.
+- Do not hide the two runtime errors; they are already counted as failures and documented.
+
+### Residual risks before external submission
+
+- No real-robot or real-image validation is available.
+- Hard-scene performance remains low, especially hard_yes_ambi at 9/50 RSR and 9/50 SSR in the no-verifier check.
+- Main full-protocol provenance still has a dirty-worktree caveat and lacks the original raw console log.
+- The metric-level failure-outcome denominator is now reproducible with `scripts/audit_failure_outcomes.py`, but semantic categories such as wrong blocker versus direct-when-blocker-needed still remain manuscript-authoritative labels.
+- Final DOI/page/proceedings polishing is materially reduced after the 2026-07-07 metadata pass: FreeGrasp, Molmo, MOKA, Grounding DINO, SpatialVLM, RoboPoint, VMRN, and occlusion-aware ally entries now carry stronger proceedings/page/DOI metadata where available. Remaining bibliography risk is limited to compact author formatting and arXiv/future references without stable proceedings metadata in the current audit.
+- Final double-blind and camera-ready checks still need a clean pass after all manuscript edits are frozen.

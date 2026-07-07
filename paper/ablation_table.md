@@ -35,19 +35,21 @@ source artifact. Split-0 rows reuse the same Molmo cache and MiMo-v2.5.
 | A0 | `S0` split 0 | Controlled baseline | none | none | baseline | 300 | 58.33 | 47.67 | 1.00 | Original FreeGrasp decision contract under same cache/protocol control. |
 | A1 | `original_protocol_budget2_vote_split0` | Doubles original-protocol reasoning budget | none | none | baseline | 300 | 56.67 | 46.33 | 2.00 | Extra VLM calls alone do not explain EGHC gains. |
 | A2 | `eghc_no_consensus_v1_split0` | Removes hierarchical consensus guard | evidence-gated cascade | none | `eghc_mask_repair_v1` | 300 | 59.00 | 56.00 | 3.32 | Consensus mainly protects first-grasp ID selection on split 0. |
-| A3 | `eghc_consensus_no_mask_repair_v1_split0` | Removes point-constrained mask repair | evidence-gated cascade | `eghc_consensus_v1` | baseline | 300 | 61.67 | 50.67 | 3.19 | Mask repair primarily contributes SSR; RSR is essentially unchanged. |
-| A4 | `EGHC3_v3_qwen35_full` split 0 | Proposed deployable method | evidence-gated cascade | `eghc_consensus_v1` | `eghc_mask_repair_v1` | 300 | 61.00 | 56.00 | 3.16 | Combined routing, consensus, and mask repair gives the best deployable split-0 SSR. |
-| A5 | `S1` split 0 | Oracle diagnostic upper bound | oracle/difficulty-assisted | n/a | repair path | 300 | 69.00 | 62.67 | 1.67 | Oracle evidence shows remaining headroom; not deployable. |
+| A3 | `eghc_consensus_no_verifier_v1` split 0 | Disables constrained verifier/adjudication | evidence-gated cascade | `eghc_consensus_v1` | `eghc_mask_repair_v1` | 300 | 53.33 | 49.33 | 1.48 | Verifier contributes useful first-grasp corrections beyond routing and mask repair alone. |
+| A4 | `eghc_consensus_no_mask_repair_v1_split0` | Removes point-constrained mask repair | evidence-gated cascade | `eghc_consensus_v1` | baseline | 300 | 61.67 | 50.67 | 3.19 | Mask repair primarily contributes SSR; RSR is essentially unchanged. |
+| A5 | `EGHC3_v3_qwen35_full` split 0 | Proposed deployable method | evidence-gated cascade | `eghc_consensus_v1` | `eghc_mask_repair_v1` | 300 | 61.00 | 56.00 | 3.16 | Combined routing, consensus, and mask repair gives the best deployable split-0 SSR. |
+| A6 | `S1` split 0 | Oracle diagnostic upper bound | oracle/difficulty-assisted | n/a | repair path | 300 | 69.00 | 62.67 | 1.67 | Oracle evidence shows remaining headroom; not deployable. |
 
 Key split-0 deltas:
 
 | Comparison | Delta RSR | Delta SSR | Interpretation |
 |---|---:|---:|---|
 | A1 - A0 | -1.67 pp | -1.33 pp | Budget-only voting is not beneficial under the original direct-answer contract. |
-| A4 - A1 | +4.33 pp | +9.67 pp | EGHC is not merely a two-call prompt-budget effect. |
-| A4 - A2 | +2.00 pp | +0.00 pp | Consensus improves RSR in this split while SSR is similar. |
-| A4 - A3 | -0.67 pp | +5.33 pp | Point-constrained mask repair is the clearest segmentation component. |
-| A5 - A4 | +8.00 pp | +6.67 pp | Oracle evidence still improves both reasoning and segmentation. |
+| A5 - A1 | +4.33 pp | +9.67 pp | EGHC is not merely a two-call prompt-budget effect. |
+| A5 - A2 | +2.00 pp | +0.00 pp | Consensus improves RSR in this split while SSR is similar. |
+| A5 - A3 | +7.67 pp | +6.67 pp | The constrained verifier contributes useful first-grasp corrections. |
+| A5 - A4 | -0.67 pp | +5.33 pp | Point-constrained mask repair is the clearest segmentation component. |
+| A6 - A5 | +8.00 pp | +6.67 pp | Oracle evidence still improves both reasoning and segmentation. |
 
 ## Historical S2-S7 Mapping
 
@@ -72,6 +74,8 @@ replace the current split-0 EGHC component table above.
   `docs/experiments/2026-07-02-eghc-no-mask-repair-split0.md`
 - Current routing ablation audit:
   `docs/experiments/2026-07-02-eghc-routing-ablation-split0.md`
+- Current no-verifier ablation audit:
+  `paper/no_verifier_ablation_run_log.md`
 - Offline call-budget table:
   `data/output/statistics/ral_ablation_call_budget_with_routing.md`
 - Historical run summaries:

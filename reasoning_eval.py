@@ -1,6 +1,8 @@
 import json
 import os
 import io
+import signal
+from contextlib import contextmanager
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -36,6 +38,43 @@ def _result_key(result):
         return _sample_key(result[0], result[1], result[2])
     except (TypeError, ValueError):
         return None
+
+
+class SampleTimeoutError(TimeoutError):
+    pass
+
+
+def _sample_timeout_seconds():
+    raw = os.environ.get("FREEGRASP_SAMPLE_TIMEOUT_SECONDS", "").strip()
+    if not raw:
+        return 0
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 0
+
+
+@contextmanager
+def _sample_timeout(seconds):
+    if seconds <= 0 or not hasattr(signal, "SIGALRM"):
+        yield
+        return
+
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    previous_timer = signal.setitimer(signal.ITIMER_REAL, 0)
+
+    def _raise_timeout(_signum, _frame):
+        raise SampleTimeoutError(f"sample exceeded {seconds}s timeout")
+
+    signal.signal(signal.SIGALRM, _raise_timeout)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
+        if previous_timer[0] > 0:
+            signal.setitimer(signal.ITIMER_REAL, *previous_timer)
 
 
 def _load_existing_results(output_json_path):
@@ -201,25 +240,26 @@ def process_dataset(
         # image_path include original image for LangSAM, molmo_folder include labeled image (for GPT) and points coordinates (for LangSAM post-process).
 
         try:
-            prediction = get_prediction_result(
-                image,
-                molmo_folder,
-                scene_id,
-                annotation,
-                return_metadata=True,
-                prompt_variant=prompt_variant,
-                model_name=model_name,
-                max_output_tokens=max_output_tokens,
-                mimo_retry_mode=mimo_retry_mode,
-                segmentation_variant=segmentation_variant,
-                routing_variant=routing_variant,
-                feature_source=feature_source,
-                protocol_ablation=protocol_ablation,
-                route_guard_variant=route_guard_variant,
-                frozen_route_assessment=frozen_route_assessment,
-                evaluation_subset=evaluation_subset,
-                query_target_id=obj_id,
-            )
+            with _sample_timeout(_sample_timeout_seconds()):
+                prediction = get_prediction_result(
+                    image,
+                    molmo_folder,
+                    scene_id,
+                    annotation,
+                    return_metadata=True,
+                    prompt_variant=prompt_variant,
+                    model_name=model_name,
+                    max_output_tokens=max_output_tokens,
+                    mimo_retry_mode=mimo_retry_mode,
+                    segmentation_variant=segmentation_variant,
+                    routing_variant=routing_variant,
+                    feature_source=feature_source,
+                    protocol_ablation=protocol_ablation,
+                    route_guard_variant=route_guard_variant,
+                    frozen_route_assessment=frozen_route_assessment,
+                    evaluation_subset=evaluation_subset,
+                    query_target_id=obj_id,
+                )
             reasoning = prediction.get("reasoning", {}) if isinstance(prediction, dict) else {}
             rsr_correct = int(
                 is_reasoning_success(

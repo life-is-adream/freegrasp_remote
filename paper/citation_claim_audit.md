@@ -20,7 +20,7 @@ Inputs inspected:
 
 Local citation-key check:
 
-- Cited keys present in bibliography: chainofthought, freegrasp, groundingdino, moka, molmo, occlusion, relationship, robopoint, setofmark, spatialvlm, thinkgrasp.
+- Cited keys present in bibliography: affordgrasp, chainofthought, freegrasp, groundingdino, graspclutter6d, graspcot, graspmolmo, graspvla, gloverpp, dexgraspvla, maplegrasp, moka, molmo, occlusion, realvlgr1, relationship, robopoint, rtgrasp, setofmark, spatialvlm, thinkgrasp, vcotgrasp.
 - No cited key was missing from paper/main.tex in the local scan.
 - Bibliography cleanup: 15 previously uncited manual bibliography entries were removed from paper/main.tex; all remaining bibitems are cited by the manuscript body.
 
@@ -98,9 +98,10 @@ External source URLs consulted:
 | Key | Status | Source checked | Manuscript claim supported | Remaining caveat |
 |---|---|---|---|---|
 | `graspmolmo` | verified | arXiv 2505.13441; PMLR/CoRL 2025 page; project page | Task-oriented Molmo fine-tuning with PRISM synthetic data. | CoRL citation kept compact; page range available in PMLR if final formatting needs it. |
-| `graspcot` | verified | arXiv 2503.16013; official GitHub | Physical-property CoT reasoning for flexible 6-DoF grasp instructions. | Venue left as arXiv to avoid unverified proceedings claim. |
+| `affordgrasp` | verified | arXiv 2503.00778; project/PDF page | In-context affordance reasoning for open-vocabulary task-oriented grasping in clutter. | Used as related-work context, not as a direct FreeGraspData baseline. |
+| `graspcot` | verified | arXiv 2503.16013; CVF ICCV 2025 paper; official GitHub | Physical-property CoT reasoning for flexible 6-DoF grasp instructions. | Local bibliography updated from arXiv-only to ICCV 2025 after source check. |
 | `graspvla` | verified | arXiv 2505.03233; project/GitHub pages | VLA grasping foundation model pretrained on large synthetic action data. | Used only as design-space contrast, not as a direct baseline. |
-| `maplegrasp` | verified | arXiv 2506.06535; GitHub | Mask-guided feature pooling for language-driven efficient robotic grasping. | Metrics not compared directly with EGHC. |
+| `maplegrasp` | verified | arXiv 2506.06535; CVF WACV 2026 paper; GitHub | Mask-guided feature pooling for language-driven efficient robotic grasping. | Local bibliography updated from arXiv-only to WACV 2026; metrics not compared directly with EGHC. |
 | `realvlgr1` | verified | arXiv 2603.14880; CVPR 2026 open-access page; GitHub | Visual-language grounding benchmark with masks, grasp poses, and contact points. | No claim that EGHC evaluates on this benchmark. |
 | `vcotgrasp` | verified | arXiv 2510.05827; project page | Visual CoT/foundation-model contrast for language-driven grasp generation. | Used as literature contrast only. |
 | `dexgraspvla` | verified | arXiv 2502.20900; AAAI 2026 page; project page | Hierarchical VLA contrast for dexterous grasping. | Not a FreeGraspData baseline. |
@@ -112,6 +113,37 @@ External source URLs consulted:
 ## T10 closeout status
 
 - Claim-to-support matrix: Done for local manuscript and local artifacts.
-- Citation key presence: Done after literature integration edits; current check reports 21 cites, 21 bibitems, missing [], and uncited [].
+- Citation key presence: Done after verifier/related-work revision; current check reports 22 cites, 22 bibitems, missing [], and uncited [].
 - External metadata/source verification: Core cited references spot-checked; CoT year and uncited bibliography cleanup were applied. Remaining work is exact BibTeX/DOI/page metadata cleanup and ongoing checks if references change.
 - Final decision: T10 has local claim mapping, core external spot-checks, CoT year correction, and uncited-entry cleanup. It is not fully submission-ready only in the sense that exact DOI/page/proceedings metadata should still be polished before upload.
+
+## Post-no-verifier citation and metadata update (2026-07-07)
+
+Scope: targeted metadata refresh for references that remain visible in the current manuscript and have stronger proceedings metadata than the 2026-07-04 audit recorded.
+
+| Key | 2026-07-07 source check | Manuscript action | Risk reduction |
+|---|---|---|---|
+| `graspcot` | CVF ICCV 2025 paper page/PDF and official project metadata support the ICCV 2025 venue. | `paper/main.tex` bibliography changed from `arXiv:2503.16013, 2025` to `in \\emph{ICCV}, 2025`. | Reduces arXiv-only metadata risk for a cited related-work item. |
+| `maplegrasp` | CVF WACV 2026 paper page/PDF and official GitHub metadata support the WACV 2026 venue. | `paper/main.tex` bibliography changed from `arXiv:2506.06535, 2025` to `in \\emph{WACV}, 2026`. | Reduces stale metadata risk for a cited related-work item. |
+| `freegrasp` | arXiv/project pages plus DBLP/DOI-style metadata indicate IROS 2025 publication; the manuscript's descriptive baseline wording remains tied to the prior paper, not locally regenerated. | No bibliography change in this pass; keep final proceedings/DOI/page cleanup as a formatting task. | Keeps central baseline caveat explicit rather than silently overstating local verification. |
+| `realvlgr1` | arXiv/GitHub/CVPR open-access metadata support CVPR 2026. | No change needed. | Confirms this remains literature context only, not an evaluated benchmark. |
+| `dexgraspvla` | AAAI proceedings page supports AAAI 2026 metadata. | No change needed. | Confirms literature-context citation. |
+
+No new citation key mismatch was introduced by this update. Remaining metadata work before upload is exact DOI/page/proceedings polishing, not claim-boundary correction.
+
+## Proceedings/DOI metadata polish (2026-07-07)
+
+Scope: second targeted pass over already-cited references where authoritative metadata was available from proceedings pages, DBLP/DOI records, publisher pages, or official project/CVF/PMLR pages. This pass updates bibliographic precision only; it does not change manuscript claims.
+
+| Key | Source checked | Manuscript action |
+|---|---|---|
+| `freegrasp` | DBLP/DOI-style metadata and prior project/arXiv pages. | Added IROS 2025 pages 17672--17679 and DOI `10.1109/IROS60139.2025.11246686`. |
+| `molmo` | CVPR 2025 Open Access page. | Updated title to the CVPR wording "vision-language models" and changed arXiv-only entry to CVPR 2025, pp. 91--104. |
+| `moka` | RSS 2024 paper/program metadata and DBLP DOI record. | Added full compact author list and DOI `10.15607/RSS.2024.XX.062`. |
+| `groundingdino` | Springer/ECCV DOI metadata and DBLP-style page range. | Added ECCV pages 38--55 and DOI `10.1007/978-3-031-72970-6_3`. |
+| `spatialvlm` | CVPR 2024 Open Access/project BibTeX. | Added CVPR pages 14455--14465. |
+| `robopoint` | PMLR volume 270 page. | Updated to PMLR proceedings metadata: Proc. CoRL, vol. 270, pp. 4005--4020, 2025. |
+| `relationship` | IEEE/ACM DOI metadata and institutional publication record. | Added Humanoids pages 118--125 and DOI `10.1109/HUMANOIDS.2018.8625071`. |
+| `occlusion` | IEEE T-ASE DOI/publication metadata. | Updated to IEEE T-ASE vol. 22, pp. 5944--5954, 2025, DOI `10.1109/TASE.2024.3434610`. |
+
+After this pass, the main remaining bibliography limitations are compact author formatting (`et al.` retained where appropriate for space) and optional page/DOI enrichment for arXiv-only or future/online references that do not yet have stable proceedings metadata in the current audit.

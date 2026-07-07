@@ -8,7 +8,7 @@
 
 \textbf{Baselines.} We compare against the original FreeGrasp GPT-4o results reported by Jiao \emph{et al.}~\cite{freegrasp}. We also include S0, a controlled same-cache baseline that runs the original FreeGrasp protocol with the same MiMo-v2.5 backbone and the same reused Molmo cache as EGHC3\_v3. Finally, S1 is reported only as an oracle upper bound because it uses ground-truth-derived features and benchmark difficulty labels.
 
-\textbf{Implementation.} EGHC3\_v3 uses MiMo-v2.5 as the main VLM, a route guard recorded as \texttt{eghc\_consensus\_v1}, and \texttt{eghc\_mask\_repair\_v1} for segmentation repair. The run uses the preserved Molmo cache recorded in the run manifest (SHA-256 prefix \texttt{705d0883}). The full run manifest records 1889 reasoning calls, 900 router calls, 59 repair calls, and 2.10 calls per sample.
+\textbf{Implementation.} EGHC3\_v3 uses MiMo-v2.5 as the main VLM, Qwen as the constrained verifier and routing gate, a route guard recorded as \texttt{eghc\_consensus\_v1}, and \texttt{eghc\_mask\_repair\_v1} for segmentation repair. The run uses the preserved Molmo cache recorded in the run manifest (SHA-256 prefix \texttt{705d0883}). The full run manifest records 1889 reasoning calls, 900 router calls, 59 repair calls, and 2.10 reasoning calls per sample.
 
 \subsection{Main Results}
 
@@ -36,7 +36,7 @@ The larger gain in SSR than RSR indicates that EGHC does not only change the sel
 
 To test whether the EGHC gain is merely a consequence of additional VLM calls, we ran a split-0 ablation that preserves the original FreeGrasp decision contract but asks MiMo-v2.5 twice with the same prompt, token budget, Molmo cache, routing disabled, and baseline segmentation. The two outputs are resolved by a visibility-validity vote. This \emph{budget-2 vote} ablation doubles the original-protocol reasoning call budget from 1.00 to 2.00 calls per sample, but it reaches only 56.67\% RSR and 46.33\% SSR on split 0, below the single-call S0 split-0 baseline. EGHC3\_v3, by contrast, reaches 61.00\% RSR and 56.00\% SSR on the same split. Thus, the controlled split-0 evidence indicates that EGHC's improvement is not explained by simply sampling the original prompt more often; the benefit comes from the routed decision contract and mask repair.
 
-We further isolate the mask-repair component by keeping the same EGHC routing, consensus guard, model, Molmo cache, and split, but replacing \texttt{eghc\_mask\_repair\_v1} with baseline segmentation. This no-mask-repair ablation reaches 61.67\% RSR but only 50.67\% SSR. Compared with full EGHC3\_v3 on split 0, RSR is essentially unchanged (+0.67 pp), while SSR drops by 5.33 pp. This supports the interpretation that point-constrained mask repair mainly improves segmentation consistency after the first-grasp ID has been selected. Disabling the consensus route guard gives 59.00\% RSR and 56.00\% SSR, suggesting that the guard mainly protects first-grasp ID selection while preserving the mask-level gain.
+We further isolate the mask-repair component by keeping the same EGHC routing, consensus guard, model, Molmo cache, and split, but replacing \texttt{eghc\_mask\_repair\_v1} with baseline segmentation. This no-mask-repair ablation reaches 61.67\% RSR but only 50.67\% SSR. Compared with full EGHC3\_v3 on split 0, RSR is essentially unchanged (+0.67 pp), while SSR drops by 5.33 pp. This supports the interpretation that point-constrained mask repair mainly improves segmentation consistency after the first-grasp ID has been selected. Disabling the consensus route guard gives 59.00\% RSR and 56.00\% SSR, suggesting that the guard mainly protects first-grasp ID selection while preserving the mask-level gain. Disabling only the constrained verifier while preserving EGHC routing, consensus guard, and mask repair lowers split-0 performance to 53.33\% RSR and 49.33\% SSR, so the verifier appears to contribute useful first-grasp corrections rather than merely increasing the call budget.
 
 \begin{table}[t]
 \centering
@@ -50,6 +50,7 @@ Method & Reason/sample & RSR & SSR \\
 S0 original protocol & 1.00 & 58.33 & 47.67 \\
 Original + budget-2 vote & 2.00 & 56.67 & 46.33 \\
 EGHC3\_v3 no consensus & 2.29 & 59.00 & 56.00 \\
+EGHC3\_v3 no verifier & 1.48 & 53.33 & 49.33 \\
 EGHC3\_v3 no mask repair & 2.13 & 61.67 & 50.67 \\
 EGHC3\_v3 & 2.10 & 61.00 & 56.00 \\
 S1 oracle & 1.34 & 69.00 & 62.67 \\
@@ -57,7 +58,7 @@ S1 oracle & 1.34 & 69.00 & 62.67 \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:offline_cost} reports the offline inference cost recorded in the run manifests. These are call-budget measurements, not robot-control latency measurements. The logs used for the split-0 ablations record HTTP requests and final summaries but do not contain per-sample timestamps, so average wall-clock time cannot be reconstructed reliably from the artifacts. EGHC3\_v3 uses 2.10 reasoning calls, 1.00 router call, and 0.07 repair calls per sample, for 3.16 recorded calls per sample. This is higher than S0's single reasoning call, but the budget-2 ablation in Table~\ref{tab:call_budget} shows that simply spending two original-protocol reasoning calls does not reproduce EGHC's SSR gain.
+Table~\ref{tab:offline_cost} reports the offline inference cost recorded in the run manifests. These are call-budget measurements, not robot-control latency measurements. The logs used for the split-0 ablations record HTTP requests and final summaries but do not contain per-sample timestamps, so average wall-clock time cannot be reconstructed reliably from the artifacts. EGHC3\_v3 uses 2.10 reasoning calls, 1.00 router call, and 0.07 repair calls per sample, for 3.16 recorded calls per sample. This is higher than S0's single reasoning call, but the budget-2 ablation in Table~\ref{tab:call_budget} shows that simply spending two original-protocol reasoning calls does not reproduce EGHC's SSR gain. The budget evidence therefore supports the routed verification contract, not a real-time deployment claim.
 
 \begin{table*}[t]
 \centering
@@ -122,7 +123,7 @@ Hard, ambiguity & 150 & 34.00 & 26.67 \\
 
 \subsection{Failure Analysis}
 
-We further categorize all non-joint-success cases in the 900-sample EGHC3\_v3 run. A sample is counted as joint success only when both the first-grasp ID is acceptable and the mask reaches the IoU threshold. The taxonomy is mutually exclusive. If the ID is correct but the mask fails, we assign either \emph{correct reasoning, failed mask} or \emph{no usable mask}, depending on whether the segmentation backend produced a usable point-consistent mask. For reasoning failures, we use the benchmark first-grasp set to determine whether the target itself was an acceptable direct grasp; this separates wrong target instances, wrong blockers, direct grasps when a blocker was needed, and blocker-first decisions when direct target grasping was possible.
+We further categorize all non-joint-success cases in the 900-sample EGHC3\_v3 run. A sample is counted as joint success only when both the first-grasp ID is acceptable and the mask reaches the IoU threshold. The taxonomy is mutually exclusive. If the ID is correct but the mask fails, we assign either \emph{correct reasoning, failed mask} or \emph{no usable mask}, depending on whether the segmentation backend produced a usable point-consistent mask. For post hoc failure labeling only, we use the benchmark first-grasp set to determine whether the target itself was an acceptable direct grasp; this separates wrong target instances, wrong blockers, direct grasps when a blocker was needed, and blocker-first decisions when direct target grasping was possible.
 
 \begin{table}[t]
 \centering

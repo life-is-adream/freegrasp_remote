@@ -280,6 +280,7 @@ def run_full_protocol(args):
         "eghc_guard_only_v1",
         "eghc_consensus_v1",
         "eghc_consensus_no_mask_repair_v1",
+        "eghc_consensus_no_verifier_v1",
         "eghc_no_consensus_v1",
         "eghc_consensus_no_blocker_first_v1",
         "eghc_consensus_qwen_native_v1",

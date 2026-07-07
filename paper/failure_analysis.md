@@ -8,7 +8,16 @@ Status: paper-facing standalone analysis for T6. This note is based only on exis
 
 This analysis covers the frozen deployable EGHC3_v3 run over all 900 FreeGraspData instructions. The method configuration is recorded as `feature_source=deployable_predicted`, `uses_gt_features=false`, `uses_benchmark_difficulty=false`, `routing_variant=evidence_gated_cascade`, route guard `eghc_consensus_v1`, segmentation `eghc_mask_repair_v1`, and reused Molmo cache SHA-256 prefix `705d0883` in `data/output/ablation_matrix/EGHC3_v3_qwen35_full/full_protocol_summary.json` and `run_manifest.json`.
 
-The failure taxonomy table below is the existing paper taxonomy from `paper/sections/experiments.tex`. I treat it as the authoritative category assignment for T6. I independently re-counted only the metric-level outcome modes from the existing `details_*.json` files: joint success, RSR-only, SSR-only, and both-fail. Those mode counts support the taxonomy totals but do not independently reconstruct every semantic category such as "wrong blocker" versus "direct, blocker needed".
+The metric outcome table below is now reproducible with:
+
+```bash
+python scripts/audit_failure_outcomes.py \
+  --details-root data/output/ablation_matrix/EGHC3_v3_qwen35_full \
+  --expect-total 900 \
+  --expect-non-joint 431
+```
+
+The failure taxonomy table below is the existing paper taxonomy from `paper/sections/experiments.tex`. I treat it as the authoritative semantic category assignment for T6. The script above independently re-counts the metric-level outcome modes from the existing `details_*.json` files: joint success, RSR-only, SSR-only, and both-fail. Those mode counts verify the taxonomy denominator and difficulty totals, but they do not independently reconstruct every semantic category such as "wrong blocker" versus "direct, blocker needed".
 
 ## Metric outcome modes
 

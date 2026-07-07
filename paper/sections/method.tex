@@ -14,7 +14,7 @@ We evaluate two binary outcomes. Reasoning success rate (RSR) measures whether t
 
 EGHC uses only deployment-available inference evidence. The evidence packet contains Molmo candidate IDs and points, predicted masks or boxes, predicted spatial relations, parser validity flags, and route-specific consistency signals. It does not contain ground-truth semantic labels, ground-truth instance masks, benchmark difficulty labels, or Molmo-to-ground-truth mappings.
 
-This boundary is important because earlier v10/S1 diagnostic experiments used annotation-derived semantic and geometric features. Those runs remain useful for measuring oracle headroom, but they are not treated as deployable method results. EGHC3\_v3 is the frozen main method because its manifest records \texttt{feature\_source=deployable\_predicted}, \texttt{uses\_gt\_features=false}, and \texttt{uses\_benchmark\_difficulty=false}.
+This boundary is important because earlier v10/S1 diagnostic experiments used annotation-derived semantic and geometric features. Those runs remain useful for measuring oracle headroom, but they are not treated as deployable method results. EGHC3\_v3 is the frozen main method because its manifest records deployable predicted features and false flags for both ground-truth features and benchmark difficulty.
 
 \subsection{Evidence-Gated Hierarchical Consensus Routing}
 
@@ -27,7 +27,15 @@ The routing stage converts evidence into one of three decision modes:
 
 The gate is conservative. A direct decision requires a valid visible target ID and no credible blocker or ambiguity evidence. A blocker-first decision requires physical evidence such as contact, coverage, on-top, overlap, or a strong visibility conflict; image-space proximity alone is insufficient. Ambiguous or inconsistent evidence falls back to target-first reasoning rather than forcing a blocker.
 
-Hierarchical consensus is then used to stabilize the final route and first-grasp ID. The first stage proposes a route from the evidence packet. The second stage performs route-specific planning using the selected protocol. A lightweight repair or adjudication call is triggered only when the selected ID is invalid, the direct route conflicts with blocker evidence, or the target/blocker decision is internally inconsistent. This keeps the decision auditable: every final prediction can be traced to the evidence fields and guard reasons that allowed or rejected a route.
+Hierarchical consensus is then used to stabilize the final route and first-grasp ID. The first stage proposes a route from the evidence packet. The second stage performs route-specific planning using the selected protocol. A constrained verification gate is triggered only when the selected ID is invalid, the direct route conflicts with blocker evidence, or the target/blocker decision is internally inconsistent. This keeps the decision auditable: every final prediction can be traced to the evidence fields, verifier decision, and guard reasons that allowed or rejected a route.
+
+\subsection{Constrained Inference-Time Verification}
+
+EGHC does not use the verifier as a post-hoc LLM judge. Instead, Qwen acts as a constrained inference-time verifier and routing gate. It reviews the MiMo first-grasp plan using only deployment-available evidence: the labeled RGB image, visible numeric object IDs, the target instruction, the MiMo route assessment, and the MiMo first-grasp plan. The route assessment contains target candidates, target visibility, blocking relations, a recommended route, and route confidence; the first-grasp plan contains the proposed object ID, label, mask query, and confidence.
+
+The verifier output is restricted to a parser-compatible \texttt{keep} or \texttt{replace} decision with a first-grasp ID, label, mask query, confidence, and reason. An accepted replacement directly updates the selected object ID, class name, and mask query used by the segmentation stage. The verifier therefore participates in the final first-grasp decision rather than merely explaining it after the fact.
+
+This authority is bounded. The verifier cannot invent a new object ID, cannot select an arbitrary third object, and can only use visible IDs. Under \texttt{eghc\_consensus\_v1}, accepted replacements are further constrained to the known target-candidate set. A blocker-first plan can be vetoed back to the target only when verifier confidence is at least 0.80, and invalid-ID repair to the target requires confidence of at least 0.70. Low-confidence replacements are rejected. Thus, Qwen verifies consistency between the MiMo plan, visual-language evidence, and EGHC route constraints rather than checking correctness against benchmark labels.
 
 \subsection{Route-Specific First-Grasp Planning}
 

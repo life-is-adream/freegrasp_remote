@@ -508,6 +508,7 @@ class UtilsOutputLimitTest(unittest.TestCase):
                 "selected_object_id": 2,
                 "class_name": "white box",
                 "mask_query": "white box",
+                "confidence": 0.71,
                 "reasoning_json": {
                     "requested_target": {"category": "strawberry", "target_candidate_id": 5},
                     "candidate_analysis": [
@@ -559,6 +560,23 @@ class UtilsOutputLimitTest(unittest.TestCase):
                 },
             },
         )
+
+    def test_process_grasping_result_repairs_direct_target_null_first_grasp_from_target_resolution(self):
+        output = (
+            '{"target_resolution":{"target_object_id":4,"target_label":"bandage",'
+            '"target_visibility":"free_visible"},'
+            '"first_grasp_planning":{"should_grasp_target_directly":true,'
+            '"blocking_candidates":[],"first_grasp_object_id":null,'
+            '"first_grasp_label":"bandage","mask_query":"bandage",'
+            '"confidence":0.88}}'
+        )
+
+        result = self.utils.process_grasping_result(output, "the bandage")
+
+        self.assertEqual(result["selected_object_id"], 4)
+        self.assertEqual(result["class_name"], "bandage")
+        self.assertEqual(result["mask_query"], "bandage")
+        self.assertEqual(result["repair_source"], "target_resolution_direct_target")
 
     def test_get_prediction_result_passes_max_output_tokens_to_qwen(self):
         fake_client = _FakeClient()

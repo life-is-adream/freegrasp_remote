@@ -3,6 +3,7 @@ import json
 import sys
 import tempfile
 import types
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -15,7 +16,7 @@ utils_stub = types.ModuleType("utils.utils")
 utils_stub.get_prediction_result = lambda *args, **kwargs: None
 sys.modules.setdefault("utils.utils", utils_stub)
 
-from reasoning_eval import _load_instance_objects, process_dataset
+from reasoning_eval import SampleTimeoutError, _load_instance_objects, _sample_timeout, process_dataset
 
 
 def _image_bytes() -> bytes:
@@ -26,6 +27,11 @@ def _image_bytes() -> bytes:
 
 
 class ReasoningResumeTest(unittest.TestCase):
+    def test_sample_timeout_raises_when_block_exceeds_limit(self) -> None:
+        with self.assertRaises(SampleTimeoutError):
+            with _sample_timeout(1):
+                time.sleep(2)
+
     def test_load_instance_objects_accepts_real_npz_key_without_suffix(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "scene.npz"

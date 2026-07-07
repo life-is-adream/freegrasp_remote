@@ -106,6 +106,7 @@ def parse_args(argv=None):
             "eghc_guard_only_v1",
             "eghc_consensus_v1",
             "eghc_consensus_no_mask_repair_v1",
+            "eghc_consensus_no_verifier_v1",
             "eghc_no_consensus_v1",
             "eghc_consensus_no_blocker_first_v1",
             "eghc_consensus_qwen_native_v1",
@@ -398,11 +399,13 @@ def _subset_config(
         "eghc_guard_only_v1",
         "eghc_consensus_v1",
         "eghc_consensus_no_mask_repair_v1",
+        "eghc_consensus_no_verifier_v1",
         "eghc_no_consensus_v1",
         "eghc_consensus_no_blocker_first_v1",
         "eghc_consensus_qwen_native_v1",
     }:
         no_mask_repair = subset_policy == "eghc_consensus_no_mask_repair_v1"
+        no_verifier = subset_policy == "eghc_consensus_no_verifier_v1"
         no_consensus = subset_policy == "eghc_no_consensus_v1"
         no_blocker_first = subset_policy == "eghc_consensus_no_blocker_first_v1"
         return {
@@ -420,6 +423,8 @@ def _subset_config(
             "protocol_ablation": (
                 "no_mask_repair"
                 if no_mask_repair
+                else "no_verifier"
+                if no_verifier
                 else "no_consensus"
                 if no_consensus
                 else "no_blocker_first"
@@ -431,6 +436,7 @@ def _subset_config(
                 if subset_policy in {
                     "eghc_consensus_v1",
                     "eghc_consensus_no_mask_repair_v1",
+                    "eghc_consensus_no_verifier_v1",
                     "eghc_consensus_no_blocker_first_v1",
                     "eghc_consensus_qwen_native_v1",
                 }
@@ -486,6 +492,7 @@ def _subset_config(
         "eghc_guard_only_v1",
         "eghc_consensus_v1",
         "eghc_consensus_no_mask_repair_v1",
+        "eghc_consensus_no_verifier_v1",
         "eghc_no_consensus_v1",
         "eghc_consensus_no_blocker_first_v1",
         "eghc_consensus_qwen_native_v1",

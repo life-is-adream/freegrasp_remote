@@ -57,6 +57,12 @@ class LangSAMCompatibilityTest(unittest.TestCase):
         self.assertEqual(dummy.received_attention_mask_dtype, torch.float32)
         self.assertEqual(result.dtype, torch.float32)
 
+    def test_bert_model_reference_is_not_registered_as_extra_submodule(self):
+        BertModelWarper = load_bert_model_warper()
+        warper = BertModelWarper(DummyBertWithoutHeadMask())
+
+        self.assertNotIn("_bert_model", dict(warper.named_children()))
+
 
 if __name__ == "__main__":
     unittest.main()
