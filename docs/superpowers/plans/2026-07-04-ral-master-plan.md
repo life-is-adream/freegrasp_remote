@@ -2,6 +2,11 @@
 
 Date: 2026-07-04
 
+Status update: 2026-07-10. The file remains the merged master plan, but the
+task board below has been updated with the post-2026-07-07 manuscript/package
+state. See `docs/superpowers/plans/daily_report_2026-07-10.md` for the latest
+daily snapshot.
+
 This plan merges:
 
 - `docs/superpowers/plans/2026-06-18-ral-submission-plan.md`
@@ -49,7 +54,7 @@ Use this boundary:
 | Page target | RA-L double-column, 6 pages preferred, 8 pages maximum |
 | Paper title | Evidence-Gated Hierarchical Consensus Routing for Free-Form Language-Guided Grasping |
 | Main evidence type | Offline FreeGraspData RSR/SSR, ablations, bootstrap CI, failure taxonomy |
-| Real-world evidence status | Not started; UR5 or real-image offline validation must be decided by 2026-07-27 |
+| Real-world evidence status | Not started as of 2026-07-10; UR5 or real-image offline validation must be decided by 2026-07-27 |
 
 ## 3. Updated Task Board
 
@@ -58,15 +63,15 @@ Use this boundary:
 | T1 Story line | 2026-06-21 | Complete | Keep EGHC framing; do not revive v10/S1 as main method. |
 | T2 RA-L outline | 2026-06-24 | Substantially complete | Treat existing LaTeX five-section draft as the working outline. |
 | T3 Experiment protocol | 2026-06-28 | Frozen in practice | Keep EGHC3_v3 manifest and no-GT provenance as source of truth. |
-| T4 Main experiment | 2026-07-05 | Data complete; formal closeout incomplete | Add `paper/results_main_table.md`; add or reconstruct `run_log.txt`/provenance note. |
-| T5 Ablations | 2026-07-19 | Core evidence complete | Synchronize `docs/experiments/ablation_table.md` with planned `paper/ablation_table.md` path. |
-| T6 Failure analysis | 2026-07-26 | Quantitative table exists in manuscript; standalone file missing | Create `paper/failure_analysis.md` with taxonomy, representative cases, and discussion-ready text. |
+| T4 Main experiment | 2026-07-05 | Complete with reconstructed provenance | `paper/results_main_table.md` and `paper/main_experiment_provenance_run_log.md` exist. Raw console `run_log.txt` is absent and should not be invented. |
+| T5 Ablations | 2026-07-19 | Complete for current paper claims | `paper/ablation_table.md` exists and includes budget-2, no consensus, no mask repair, no verifier, EGHC3_v3, and S1 split-0 rows. |
+| T6 Failure analysis | 2026-07-26 | Complete for current paper package | `paper/failure_analysis.md` exists; `scripts/audit_failure_outcomes.py` verifies 900 rows and 431 non-joint-success samples. |
 | T7 UR5 or real-image validation | 2026-08-09 | Not started | Decide by 2026-07-27; draft protocol first. |
-| T8 Figures | 2026-08-12 | Initial PDFs exist | Audit figure readability and figure-caption claim alignment after T6/T7 decision. |
-| T9 English RA-L draft | 2026-08-16 | Structure complete; manuscript compiles | Polish for claim boundaries, page budget, and final table/figure placement. |
-| T10 Citation and claim audit | 2026-08-20 | Not started | Build citation-to-claim audit after T6/T7 text stabilizes. |
-| T11 Internal review | 2026-08-23 | Not started | Run strict RA-L reviewer simulation after citation audit. |
-| T12 Double-blind/package check | 2026-08-30 | Not started | Prepare anonymous PDF, source package, multimedia/readme. |
+| T8 Figures | 2026-08-12 | Strong draft | Figure PDFs exist and pass local metadata/font audit; final human readability check remains. |
+| T9 English RA-L draft | 2026-08-16 | Strong draft | `paper/main.pdf` compiles to 6 pages as of 2026-07-07. |
+| T10 Citation and claim audit | 2026-08-20 | First pass complete; metadata polish substantially advanced | `paper/citation_claim_audit.md` exists; current citation scan reports 22 cites and 22 bibitems with no missing or uncited keys. |
+| T11 Internal review | 2026-08-23 | Complete first pass and no-verifier re-review | `paper/internal_review_report.md` exists. |
+| T12 Double-blind/package check | 2026-08-30 | Local audit passes current draft; final package not frozen | `paper/double_blind_package_check.md` exists; `scripts/audit_submission_package.py --root .` returns `AUDIT_OK`. |
 | T13 Final submission | 2026-09-03 | Not started | Submit through PaperCept after T12 passes. |
 
 ## 4. Evidence Inventory
@@ -100,14 +105,26 @@ Use this boundary:
 | No-mask-repair ablation | Complete | Shows mask repair primarily supports SSR. |
 | No-consensus routing ablation | Complete | Helps isolate routing/consensus contribution. |
 | Offline call-budget table | Complete | Responds to hidden-overhead critique. |
-| Failure taxonomy table | Present in `experiments.tex` | Needs standalone `paper/failure_analysis.md`. |
+| Failure taxonomy table | Paper-facing analysis complete | `paper/failure_analysis.md` exists; metric denominator is script-audited. |
+| No-verifier ablation | Complete | `paper/no_verifier_ablation_run_log.md`; split-0 row added to `paper/ablation_table.md`. |
+| Citation/claim audit | Complete first pass | `paper/citation_claim_audit.md`; remaining work is final DOI/page/proceedings polish if references change. |
+| Double-blind package audit | Current draft passes local audit | `scripts/audit_submission_package.py --root .` returned `AUDIT_OK` on 2026-07-10. |
 | PPT plan | Drafted | `docs/superpowers/reports/2026-07-03-eghc-ral-ppt-plan.md` |
 
 ## 5. Immediate Execution Plan
 
+2026-07-10 update: P0, P1, P2, and first-pass P5 audit work have largely been
+completed for the current offline manuscript package. The next live blocker is
+P3 real validation.
+
 ### P0: File safety and Go Node 1 closeout
 
 Target date: 2026-07-04 to 2026-07-05
+
+Status on 2026-07-10: complete with caveat. The repository contains
+`paper/results_main_table.md` and `paper/main_experiment_provenance_run_log.md`.
+The provenance note is intentionally reconstructed from artifacts because the
+raw console `run_log.txt` was absent.
 
 1. Commit or otherwise protect current untracked planning documents:
    - `docs/superpowers/plans/2026-06-18-ral-submission-plan.md`
@@ -130,6 +147,9 @@ Success condition:
 
 Target date: 2026-07-04 to 2026-07-08
 
+Status on 2026-07-10: complete for current claims. `paper/ablation_table.md`
+exists and is the paper-facing table source.
+
 1. Keep `docs/experiments/ablation_table.md` as the detailed experiment log.
 2. Add `paper/ablation_table.md` as the paper-facing summary, or explicitly
    update the master plan to use `docs/experiments/ablation_table.md`.
@@ -144,6 +164,11 @@ Success condition:
 ### P2: Standalone failure analysis
 
 Target date: 2026-07-06 to 2026-07-14
+
+Status on 2026-07-10: complete for current manuscript package.
+`paper/failure_analysis.md` exists, and `scripts/audit_failure_outcomes.py`
+validates 900 total rows and 431 non-joint-success samples. Semantic categories
+remain partly author-labeled and should not be overstated as fully regenerated.
 
 Create `paper/failure_analysis.md` with:
 
@@ -237,11 +262,11 @@ Success condition:
 
 | Gate | Date | Status as of 2026-07-04 | Pass condition |
 |---|---:|---|---|
-| Go 1: main experiment | 2026-07-05 | Data passes; closeout artifacts missing | `full_protocol_summary.json`, split integrity, results table, run log/provenance. |
-| Go 2: core ablations | 2026-07-19 | Evidence mostly passes | Paper-facing ablation table and mechanism interpretation complete. |
+| Go 1: main experiment | 2026-07-05 | Passed with provenance caveat | `full_protocol_summary.json`, split integrity, results table, and reconstructed provenance note exist. |
+| Go 2: core ablations | 2026-07-19 | Passed early for current claims | Paper-facing ablation table and mechanism interpretation complete. |
 | Go 3: real validation | 2026-08-09 | Not started | UR5 trials or clearly bounded real-image offline validation. |
-| Go 4: draft/page budget | 2026-08-20 | Draft exists | Manuscript compiles under 8 pages with final evidence framing. |
-| Go 5: submission package | 2026-08-30 | Not started | Double-blind PDF, source, references, video/readme, metadata. |
+| Go 4: draft/page budget | 2026-08-20 | On track | Current manuscript compiles to 6 pages; final evidence framing still depends on T7. |
+| Go 5: submission package | 2026-08-30 | Partially on track | Local anonymous package audit passes current draft; supplement/video/readme remains blocked by T7. |
 
 No-go rules:
 
@@ -291,13 +316,17 @@ Forbidden claims:
 
 Recommended order:
 
-1. Protect current planning files with a commit.
-2. Add `paper/results_main_table.md`.
-3. Add main-run log/provenance artifact.
-4. Add or synchronize `paper/ablation_table.md`.
-5. Start `paper/failure_analysis.md`.
+1. Decide the T7 validation route: UR5 or real-image offline validation.
+2. Draft `paper/real_validation.md` protocol before collecting or claiming
+   real-world evidence.
+3. If validation cannot be collected soon, explicitly keep the manuscript as an
+   offline benchmark paper and remove any real-world implication.
+4. Manually inspect `paper/main.pdf` for table/figure readability after the
+   2026-07-07 figure additions.
+5. Resolve or document the modified `models/langsam/GroundingDINO` submodule
+   before the next push/archive.
 
-Do not start another paid VLM experiment until these five items are closed.
+Do not start another paid VLM experiment until T7 is decided.
 
 ## 10. Owner Notes For Future Agents
 
@@ -307,4 +336,3 @@ Do not start another paid VLM experiment until these five items are closed.
 - Keep EGHC3_v3 frozen unless the user explicitly starts a new paper version.
 - If asked "what next?", default to T4 closeout, then T6 failure analysis, then
   T7 validation protocol.
-
