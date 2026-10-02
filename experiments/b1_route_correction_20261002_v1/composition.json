@@ -1,0 +1,39 @@
+{
+  "status": "composed",
+  "arms": {
+    "R": {
+      "shared_frozen_A": 293,
+      "new_prediction": 6,
+      "official_failure": 1
+    },
+    "RI": {
+      "shared_frozen_A": 295,
+      "new_prediction": 4,
+      "official_failure": 1
+    },
+    "RO": {
+      "shared_frozen_A": 298,
+      "new_prediction": 2,
+      "official_failure": 0
+    }
+  },
+  "outcomes": {
+    "R": {
+      "same_id_keep_A_outputs": 31,
+      "segmentation_failure_official_failure": 1,
+      "id_changed_new_prediction": 6
+    },
+    "RI": {
+      "same_id_keep_A_outputs": 26,
+      "segmentation_failure_official_failure": 1,
+      "id_changed_new_prediction": 4
+    },
+    "RO": {
+      "id_changed_new_prediction": 2,
+      "same_id_keep_A_outputs": 5
+    }
+  },
+  "cases": 300,
+  "triggered": 38,
+  "source": "/home/public/zb/freegrasp_unograsp_fusion_20260922_v1/b1_v6_routing_split0_20260930_resume8_repaired"
+}

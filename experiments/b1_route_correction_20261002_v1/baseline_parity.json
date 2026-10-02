@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "baseline_kind": "explicit_frozen_repaired_A",
+  "historical_clean_equivalent": false,
+  "historical_clean_reference": {
+    "ssr": "162/300 (not this baseline)",
+    "rsr": "172/300 (not this baseline)"
+  },
+  "frozen_A_scores_reference": "161/300 SSR, 171/300 RSR (repaired, from audit 2026-10-02)",
+  "cases": 300,
+  "a_rows_verified": 300,
+  "a_masks_hash_verified": 300,
+  "derived_seal_source": "/home/public/zb/freegrasp_unograsp_fusion_20260922_v1/b1_v6_repair_20261002/validation/derived_integrity.json",
+  "guard_reproduction": {
+    "matches": 300,
+    "mismatches": [],
+    "note": "repo select_route(pathb_blk_arb_v1) on cached router_output reproduces the frozen A route for every case"
+  },
+  "route_distribution": {
+    "direct": 110,
+    "blocker_first": 135,
+    "target_first": 55
+  }
+}

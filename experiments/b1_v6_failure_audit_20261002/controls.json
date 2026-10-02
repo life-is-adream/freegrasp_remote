@@ -1,0 +1,136 @@
+{
+  "unchanged_route": {
+    "A": {
+      "n": 300,
+      "id_drift_vs_A": 0,
+      "mask_query_drift_vs_A": 0,
+      "external_calls": 20
+    },
+    "D": {
+      "n": 213,
+      "id_drift_vs_A": 6,
+      "mask_query_drift_vs_A": 5,
+      "external_calls": 16
+    },
+    "E": {
+      "n": 247,
+      "id_drift_vs_A": 3,
+      "mask_query_drift_vs_A": 2,
+      "external_calls": 16
+    }
+  },
+  "baseline_drift": [
+    {
+      "case": "hard_no_ambi:7346:4:44",
+      "external_calls": 1,
+      "history_decision": "verifier_error_keep",
+      "history_id": 3,
+      "current_id": 1
+    },
+    {
+      "case": "hard_yes_ambi:1703:4:17",
+      "external_calls": 1,
+      "history_decision": "verifier_error_keep",
+      "history_id": 1,
+      "current_id": 2
+    },
+    {
+      "case": "hard_yes_ambi:2014:6:24",
+      "external_calls": 1,
+      "history_decision": "verifier_error_keep",
+      "history_id": 1,
+      "current_id": 2
+    },
+    {
+      "case": "medium_no_ambi:6758:8:36",
+      "external_calls": 1,
+      "history_decision": "verifier_error_keep",
+      "history_id": 6,
+      "current_id": 4
+    },
+    {
+      "case": "medium_yes_ambi:1078:2:10",
+      "external_calls": 1,
+      "history_decision": "verifier_error_keep",
+      "history_id": 2,
+      "current_id": 1
+    },
+    {
+      "case": "medium_yes_ambi:1508:1:18",
+      "external_calls": 1,
+      "history_decision": "verifier_error_keep",
+      "history_id": 4,
+      "current_id": 2
+    }
+  ],
+  "d_direct_demotion": {
+    "n": 41,
+    "has_relations": 41,
+    "wrong_difficulty": 38
+  },
+  "e_prompt_references": {
+    "run2": {
+      "build_e_router_prompt": 0,
+      "router_output_reuse": 2,
+      "sha256": "dd4ef15ab69760ea2dbcf300e58e9c3b147b0051e468877ea0ba84ff14683bd1"
+    },
+    "resume4": {
+      "build_e_router_prompt": 0,
+      "router_output_reuse": 1,
+      "sha256": "b05ac52ff8c06d058a5e856b2cf624ce4d4e548aa37e775cfce3d5e1e2bff98a"
+    },
+    "resume5": {
+      "build_e_router_prompt": 0,
+      "router_output_reuse": 1,
+      "sha256": "dd8cd87baadf6625d6f92d8fc8556e8ae2dcacbd27fb490478dfeaa80510d96d"
+    },
+    "resume6": {
+      "build_e_router_prompt": 0,
+      "router_output_reuse": 1,
+      "sha256": "293236f24aae2aade753c2021eebb2921e519ef7d6778cf270330705540cfec4"
+    },
+    "resume7": {
+      "build_e_router_prompt": 0,
+      "router_output_reuse": 1,
+      "sha256": "eac194d9c21c134a4c331f065e8c27675f985e3af1ba08c48c95f676d4f5286a"
+    },
+    "resume8": {
+      "build_e_router_prompt": 0,
+      "router_output_reuse": 1,
+      "sha256": "fafed70cea6dca93b60fc6784a0f7f95fc166f9651a66f976a750bed618db8bf"
+    }
+  },
+  "e_blocker_demotion": {
+    "E_target_ambiguity_or_missing_candidate": 20,
+    "E_conservative_target_first_fallback": 1
+  },
+  "D_query_only_losses": [],
+  "E_query_only_losses": [
+    {
+      "case": "medium_no_ambi:4877:4:33",
+      "a_query": [
+        "white block",
+        "white block"
+      ],
+      "b_query": [
+        "light green box",
+        "light green box"
+      ],
+      "a_iou": 0.994410480349345,
+      "b_iou": 0.0
+    },
+    {
+      "case": "medium_yes_ambi:2157:8:29",
+      "a_query": [
+        "orange toy gun",
+        "orange toy gun"
+      ],
+      "b_query": [
+        "blue cup",
+        "blue cup"
+      ],
+      "a_iou": 0.8217795322060698,
+      "b_iou": 0.0008463027150137835
+    }
+  ]
+}

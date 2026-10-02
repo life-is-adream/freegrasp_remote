@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "method": "zero-API reachability from actual B1 guard outputs (design 3.3)",
+  "branch_I_funnel": {
+    "A=direct": 110,
+    "unique_free_safe_keep_A": 79,
+    "multiple_legal_target_ids": 31,
+    "TRIGGER_branch_I": 31
+  },
+  "branch_O_funnel": {
+    "A=blocker_first_no_intervention": 135,
+    "A=target_first": 55,
+    "reject:not_unique_target": 37,
+    "unique_target": 18,
+    "blocked_visibility": 18,
+    "confidence_ok": 18,
+    "reject:no_strong_legal_relation_to_target": 11,
+    "TRIGGER_branch_O": 7
+  },
+  "branch_I_triggers": 31,
+  "branch_O_triggers": 7,
+  "total_interventions": 38,
+  "coverage_of_300": 0.1267,
+  "schema_families_seen": [
+    "blocker_id+target_id",
+    "blocking_object_id+blocked_object_id",
+    "source_id+target_id"
+  ]
+}

@@ -1,0 +1,11 @@
+# B1 v6 修复交付
+
+服务器目录：`/home/public/zb/freegrasp_unograsp_fusion_20260922_v1/b1_v6_repair_20261002`。
+
+实现：关系schema归一、D direct遮挡保护、E blocker保留、同路线共享A、严格回放无隐式API fallback、parquet原图分割输入、完整分割cache序列化、派生mask哈希清单。runner.execute_plan和B1Backend构成可接仓库下游的修复执行入口；CLI默认只做离线验证。旧worker和旧结果保持原状，后续须用新入口，不继续旧续跑脚本。
+
+验证：11项单元测试在本地及服务器通过；300真实案例零API/零GPU回归通过，900个mask尺寸通过、1800个文件哈希通过、821个共享A臂结果的reasoning和mask字节一致。新路由计划为A共享300、D共享254/需新预测46、E共享267/需新预测33。路由保护消除了本批41次D从规划路线降级direct及21次E从blocker_first降级target_first；这是结构检查，不是新成功率。
+
+产物：validation/validation.json、plan.json、control_manifest.json、derived_integrity.json。README.md包含复现命令和实际下游适配方式。完整性快照是事后封存，不代表最初生成时已有这些校验。
+
+边界：本次没有新付费预测，未宣称SSR提升。D仍保留开发集频次映射作为受保护的建议器，未假装获得最优路线监督。E明确为cached证据规则版本；显式live适配器才可声明新prompt调用。历史A六行ID漂移不能逆向修复已产生的记录，因此共享控制明确版本为现有repaired A，未通过历史等价门；要恢复历史A需单独重建并验证历史最终reasoning对应的mask。

@@ -1,0 +1,1174 @@
+{
+  "status": "frozen",
+  "work_items": [
+    {
+      "case_id": "06d410435fe3ea046c332960",
+      "case": "medium_yes_ambi:774:4:7",
+      "scene": 774,
+      "object": 4,
+      "annotation": "the banana on the left",
+      "audit_subset": "medium_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          2
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "0a468793cf569a13a4b8f60e",
+      "case": "easy_yes_ambi:1441:3:20",
+      "scene": 1441,
+      "object": 3,
+      "annotation": "the blue ball in the bottom left corner",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          2,
+          7
+        ],
+        "valid_candidate_count": 3,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "15b2b718a278258f7c94bf30",
+      "case": "easy_yes_ambi:1071:2:15",
+      "scene": 1071,
+      "object": 2,
+      "annotation": "the banana of the right",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 4,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          4
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "1d4b7c8827b5524f371cbb64",
+      "case": "medium_yes_ambi:501:4:5",
+      "scene": 501,
+      "object": 4,
+      "annotation": "the top strawberry",
+      "audit_subset": "medium_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 4,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          4
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "2e56c8d82209413cccf30017",
+      "case": "easy_yes_ambi:766:3:7",
+      "scene": 766,
+      "object": 3,
+      "annotation": "the leftmost cardboard box",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          2,
+          4
+        ],
+        "valid_candidate_count": 3,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.95,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "35591132527cc084405bc847",
+      "case": "easy_yes_ambi:1608:2:25",
+      "scene": 1608,
+      "object": 2,
+      "annotation": "the bottom left pear",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          2
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.95,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "357de9ed3cfbdc289e67209a",
+      "case": "hard_no_ambi:3576:4:12",
+      "scene": 3576,
+      "object": 4,
+      "annotation": "the bigger box",
+      "audit_subset": "hard_no_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          2
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "39d72f8c1be7806e88a618d5",
+      "case": "easy_yes_ambi:1834:5:35",
+      "scene": 1834,
+      "object": 5,
+      "annotation": "the lowest blue cap",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 3,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          3,
+          7,
+          8
+        ],
+        "valid_candidate_count": 4,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.95,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "4a288841a57e4b1d3d8c3b58",
+      "case": "easy_yes_ambi:1050:2:13",
+      "scene": 1050,
+      "object": 2,
+      "annotation": "the bottom most ball",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 4,
+      "decision_evidence": {
+        "unique_target_ids": [
+          4,
+          5
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "50b01422d70d56e3ba246d53",
+      "case": "hard_yes_ambi:4570:3:42",
+      "scene": 4570,
+      "object": 3,
+      "annotation": "the plastic bag closest to the top edge",
+      "audit_subset": "hard_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 2,
+      "decision_evidence": {
+        "unique_target_ids": [
+          2,
+          3
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "513b69eff08ec6fc315ad41d",
+      "case": "easy_yes_ambi:2233:2:39",
+      "scene": 2233,
+      "object": 2,
+      "annotation": "the greenish box on top",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          2
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "58e125ef4d61358e7105c6f8",
+      "case": "easy_yes_ambi:222:1:4",
+      "scene": 222,
+      "object": 1,
+      "annotation": "the top left yellow cup",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 2,
+      "decision_evidence": {
+        "unique_target_ids": [
+          2,
+          5
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "5b00917075b7fda6e7c23489",
+      "case": "easy_yes_ambi:2215:1:38",
+      "scene": 2215,
+      "object": 1,
+      "annotation": "the peach",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          4,
+          7
+        ],
+        "valid_candidate_count": 3,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "5ca63fa76fa3542c2900d09e",
+      "case": "easy_yes_ambi:1626:5:26",
+      "scene": 1626,
+      "object": 5,
+      "annotation": "the bottom white-capped bottle",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 3,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          3,
+          8,
+          9
+        ],
+        "valid_candidate_count": 4,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "76e8dca462bd14c45eef9537",
+      "case": "easy_yes_ambi:1214:6:18",
+      "scene": 1214,
+      "object": 6,
+      "annotation": "the spam can from the top",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          5
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "7a45da36074c56161efde8ad",
+      "case": "easy_yes_ambi:33:2:2",
+      "scene": 33,
+      "object": 2,
+      "annotation": "the standing cup in the centre of the image",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 2,
+      "decision_evidence": {
+        "unique_target_ids": [
+          2,
+          3
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "7d243ec33e32f56b477c2a4b",
+      "case": "easy_yes_ambi:1745:9:32",
+      "scene": 1745,
+      "object": 9,
+      "annotation": "the blue ball on the top",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 6,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          5,
+          6
+        ],
+        "valid_candidate_count": 3,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "7efe179545cbe112b53fdb29",
+      "case": "easy_yes_ambi:2372:3:41",
+      "scene": 2372,
+      "object": 3,
+      "annotation": "the green box in the middle",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          8
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "7f3a9b4c95594ab8746b40ce",
+      "case": "easy_yes_ambi:976:2:11",
+      "scene": 976,
+      "object": 2,
+      "annotation": "the apple on top",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 2,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          2
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "943ce03e1d4b6e38cb906def",
+      "case": "easy_yes_ambi:2537:3:44",
+      "scene": 2537,
+      "object": 3,
+      "annotation": "the blue screw head in the top right",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 4,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          2,
+          4
+        ],
+        "valid_candidate_count": 3,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "986a2387efac557d899984b2",
+      "case": "medium_no_ambi:6903:8:41",
+      "scene": 6903,
+      "object": 8,
+      "annotation": "the festo box from top",
+      "audit_subset": "medium_no_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 4,
+      "decision_evidence": {
+        "unique_target_ids": [
+          4,
+          7,
+          8
+        ],
+        "valid_candidate_count": 3,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "a121b13f2c106aef89f44aa1",
+      "case": "easy_yes_ambi:976:1:10",
+      "scene": 976,
+      "object": 1,
+      "annotation": "the bottom apple",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          2
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "b521085ee5bab67903cf2d83",
+      "case": "easy_yes_ambi:2884:2:47",
+      "scene": 2884,
+      "object": 2,
+      "annotation": "the top yellow cup",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 2,
+      "decision_evidence": {
+        "unique_target_ids": [
+          2,
+          4
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "b66b7ed90ba4a7310f99757e",
+      "case": "easy_yes_ambi:1546:1:23",
+      "scene": 1546,
+      "object": 1,
+      "annotation": "the top tomato can",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          4,
+          5
+        ],
+        "valid_candidate_count": 3,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "b83e5dee2de2a166b2d84695",
+      "case": "easy_yes_ambi:305:1:5",
+      "scene": 305,
+      "object": 1,
+      "annotation": "the rightmost black object",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 4,
+      "decision_evidence": {
+        "unique_target_ids": [
+          3,
+          4
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.95,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "d3ff12de79e03a5838009e33",
+      "case": "easy_yes_ambi:1452:1:21",
+      "scene": 1452,
+      "object": 1,
+      "annotation": "the green box on the top right",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 4,
+      "decision_evidence": {
+        "unique_target_ids": [
+          2,
+          4
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "d4da4bccf305495017559fa5",
+      "case": "easy_yes_ambi:20:7:0",
+      "scene": 20,
+      "object": 7,
+      "annotation": "the yellow lemon on the right",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 7,
+      "decision_evidence": {
+        "unique_target_ids": [
+          4,
+          7
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.95,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "d85c535f5f34de4cc1b31295",
+      "case": "easy_yes_ambi:32:7:1",
+      "scene": 32,
+      "object": 7,
+      "annotation": "the lemon in the top right corner",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 7,
+      "decision_evidence": {
+        "unique_target_ids": [
+          2,
+          7
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "e81de76d9b4347735f6f9d66",
+      "case": "easy_yes_ambi:2819:4:46",
+      "scene": 2819,
+      "object": 4,
+      "annotation": "the orange on top right",
+      "audit_subset": "easy_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 3,
+      "decision_evidence": {
+        "unique_target_ids": [
+          2,
+          3
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.95,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "faf27aee61c82716d162a2ee",
+      "case": "hard_no_ambi:3576:2:11",
+      "scene": 3576,
+      "object": 2,
+      "annotation": "the little box on top",
+      "audit_subset": "hard_no_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 2,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1,
+          2
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "ffad3a69a370e1da4c98db59",
+      "case": "medium_yes_ambi:1498:1:16",
+      "scene": 1498,
+      "object": 1,
+      "annotation": "the most top box",
+      "audit_subset": "medium_yes_ambi",
+      "a_route": "direct",
+      "r_route": "target_first",
+      "branch": "I",
+      "guard_reasons": [
+        "R_multiple_legal_target_candidates"
+      ],
+      "a_final_id": 6,
+      "decision_evidence": {
+        "unique_target_ids": [
+          4,
+          6
+        ],
+        "valid_candidate_count": 2,
+        "invalid_candidate_count": 0,
+        "visibility": "free_visible",
+        "confidence": 0.9,
+        "raw_relation_count": 0,
+        "normalized_relations": []
+      }
+    },
+    {
+      "case_id": "0fe3f963ba57b59a1c8b5d5e",
+      "case": "hard_yes_ambi:1709:5:18",
+      "scene": 1709,
+      "object": 5,
+      "annotation": "the right most screwdriver",
+      "audit_subset": "hard_yes_ambi",
+      "a_route": "target_first",
+      "r_route": "blocker_first",
+      "branch": "O",
+      "guard_reasons": [
+        "R_strong_legal_occlusion_to_unique_target"
+      ],
+      "a_final_id": 11,
+      "decision_evidence": {
+        "unique_target_ids": [
+          10
+        ],
+        "valid_candidate_count": 1,
+        "invalid_candidate_count": 0,
+        "visibility": "visible_but_blocked",
+        "confidence": 0.9,
+        "raw_relation_count": 1,
+        "normalized_relations": [
+          {
+            "schema": "source_id+target_id",
+            "status": "explicit",
+            "blocker_id": 9,
+            "target_id": 10,
+            "strength": 2
+          }
+        ],
+        "supporting_relations": [
+          {
+            "schema": "source_id+target_id",
+            "blocker_id": 9,
+            "target_id": 10,
+            "strength": 2
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "1fdbe3c7f1a1d0fbdd878d12",
+      "case": "hard_yes_ambi:2357:9:31",
+      "scene": 2357,
+      "object": 9,
+      "annotation": "the white cable on bottom left",
+      "audit_subset": "hard_yes_ambi",
+      "a_route": "target_first",
+      "r_route": "blocker_first",
+      "branch": "O",
+      "guard_reasons": [
+        "R_strong_legal_occlusion_to_unique_target"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          1
+        ],
+        "valid_candidate_count": 1,
+        "invalid_candidate_count": 0,
+        "visibility": "visible_but_blocked",
+        "confidence": 0.85,
+        "raw_relation_count": 1,
+        "normalized_relations": [
+          {
+            "schema": "blocker_id+target_id",
+            "status": "explicit",
+            "blocker_id": 3,
+            "target_id": 1,
+            "strength": 2
+          }
+        ],
+        "supporting_relations": [
+          {
+            "schema": "blocker_id+target_id",
+            "blocker_id": 3,
+            "target_id": 1,
+            "strength": 2
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "502c98b919a16dc482fbee0a",
+      "case": "hard_no_ambi:6807:1:22",
+      "scene": 6807,
+      "object": 1,
+      "annotation": "the green box",
+      "audit_subset": "hard_no_ambi",
+      "a_route": "target_first",
+      "r_route": "blocker_first",
+      "branch": "O",
+      "guard_reasons": [
+        "R_strong_legal_occlusion_to_unique_target"
+      ],
+      "a_final_id": 2,
+      "decision_evidence": {
+        "unique_target_ids": [
+          3
+        ],
+        "valid_candidate_count": 1,
+        "invalid_candidate_count": 0,
+        "visibility": "visible_but_blocked",
+        "confidence": 0.9,
+        "raw_relation_count": 2,
+        "normalized_relations": [
+          {
+            "schema": "blocking_object_id+blocked_object_id",
+            "status": "explicit",
+            "blocker_id": 2,
+            "target_id": 3,
+            "strength": 2
+          },
+          {
+            "schema": "blocking_object_id+blocked_object_id",
+            "status": "explicit",
+            "blocker_id": 4,
+            "target_id": 3,
+            "strength": 2
+          }
+        ],
+        "supporting_relations": [
+          {
+            "schema": "blocking_object_id+blocked_object_id",
+            "blocker_id": 2,
+            "target_id": 3,
+            "strength": 2
+          },
+          {
+            "schema": "blocking_object_id+blocked_object_id",
+            "blocker_id": 4,
+            "target_id": 3,
+            "strength": 2
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "89fcbb6de97d9eaafbb0aaff",
+      "case": "medium_no_ambi:1786:3:18",
+      "scene": 1786,
+      "object": 3,
+      "annotation": "the big cardboard box",
+      "audit_subset": "medium_no_ambi",
+      "a_route": "target_first",
+      "r_route": "blocker_first",
+      "branch": "O",
+      "guard_reasons": [
+        "R_strong_legal_occlusion_to_unique_target"
+      ],
+      "a_final_id": 1,
+      "decision_evidence": {
+        "unique_target_ids": [
+          4
+        ],
+        "valid_candidate_count": 1,
+        "invalid_candidate_count": 0,
+        "visibility": "visible_but_blocked",
+        "confidence": 0.85,
+        "raw_relation_count": 2,
+        "normalized_relations": [
+          {
+            "schema": "source_id+target_id",
+            "status": "explicit",
+            "blocker_id": 1,
+            "target_id": 4,
+            "strength": 2
+          },
+          {
+            "schema": "source_id+target_id",
+            "status": "explicit",
+            "blocker_id": 3,
+            "target_id": 4,
+            "strength": 2
+          }
+        ],
+        "supporting_relations": [
+          {
+            "schema": "source_id+target_id",
+            "blocker_id": 1,
+            "target_id": 4,
+            "strength": 2
+          },
+          {
+            "schema": "source_id+target_id",
+            "blocker_id": 3,
+            "target_id": 4,
+            "strength": 2
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "b1a13625ddfcf5c960e61787",
+      "case": "medium_no_ambi:6817:1:37",
+      "scene": 6817,
+      "object": 1,
+      "annotation": "the  yellow object on top of toy drill",
+      "audit_subset": "medium_no_ambi",
+      "a_route": "target_first",
+      "r_route": "blocker_first",
+      "branch": "O",
+      "guard_reasons": [
+        "R_strong_legal_occlusion_to_unique_target"
+      ],
+      "a_final_id": 10,
+      "decision_evidence": {
+        "unique_target_ids": [
+          11
+        ],
+        "valid_candidate_count": 1,
+        "invalid_candidate_count": 0,
+        "visibility": "visible_but_blocked",
+        "confidence": 0.9,
+        "raw_relation_count": 1,
+        "normalized_relations": [
+          {
+            "schema": "blocking_object_id+blocked_object_id",
+            "status": "explicit",
+            "blocker_id": 10,
+            "target_id": 11,
+            "strength": 2
+          }
+        ],
+        "supporting_relations": [
+          {
+            "schema": "blocking_object_id+blocked_object_id",
+            "blocker_id": 10,
+            "target_id": 11,
+            "strength": 2
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "cefecd320c594975c7acd8e3",
+      "case": "medium_no_ambi:944:4:8",
+      "scene": 944,
+      "object": 4,
+      "annotation": "the red drill",
+      "audit_subset": "medium_no_ambi",
+      "a_route": "target_first",
+      "r_route": "blocker_first",
+      "branch": "O",
+      "guard_reasons": [
+        "R_strong_legal_occlusion_to_unique_target"
+      ],
+      "a_final_id": 3,
+      "decision_evidence": {
+        "unique_target_ids": [
+          2
+        ],
+        "valid_candidate_count": 1,
+        "invalid_candidate_count": 0,
+        "visibility": "visible_but_blocked",
+        "confidence": 0.9,
+        "raw_relation_count": 1,
+        "normalized_relations": [
+          {
+            "schema": "blocking_object_id+blocked_object_id",
+            "status": "explicit",
+            "blocker_id": 3,
+            "target_id": 2,
+            "strength": 2
+          }
+        ],
+        "supporting_relations": [
+          {
+            "schema": "blocking_object_id+blocked_object_id",
+            "blocker_id": 3,
+            "target_id": 2,
+            "strength": 2
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "dea446edbdb0b5f42df3c4de",
+      "case": "medium_yes_ambi:1662:11:20",
+      "scene": 1662,
+      "object": 11,
+      "annotation": "the lighter box behind the brown box",
+      "audit_subset": "medium_yes_ambi",
+      "a_route": "target_first",
+      "r_route": "blocker_first",
+      "branch": "O",
+      "guard_reasons": [
+        "R_strong_legal_occlusion_to_unique_target"
+      ],
+      "a_final_id": 11,
+      "decision_evidence": {
+        "unique_target_ids": [
+          9
+        ],
+        "valid_candidate_count": 1,
+        "invalid_candidate_count": 0,
+        "visibility": "visible_but_blocked",
+        "confidence": 0.9,
+        "raw_relation_count": 1,
+        "normalized_relations": [
+          {
+            "schema": "blocking_object_id+blocked_object_id",
+            "status": "explicit",
+            "blocker_id": 11,
+            "target_id": 9,
+            "strength": 2
+          }
+        ],
+        "supporting_relations": [
+          {
+            "schema": "blocking_object_id+blocked_object_id",
+            "blocker_id": 11,
+            "target_id": 9,
+            "strength": 2
+          }
+        ]
+      }
+    }
+  ],
+  "total": 38
+}

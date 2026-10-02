@@ -1,0 +1,81 @@
+{
+  "experiment_id": "b1_route_correction_20261002_v1",
+  "protocol_version": "route_correction_v1",
+  "design_source": "FreeGrasp_B1_选择性路由纠错_实验设计与执行交接_20261002.md (design v1.1)",
+  "date": "2026-10-02",
+  "method": {
+    "name": "constrained route correction R on frozen B1",
+    "branches": {
+      "I": "A=direct with identity/direct-grasp evidence risk -> target_first verification",
+      "O": "A=target_first, unique target, predicted blocked, confidence>=0.75, strong legal relation to that target -> blocker_first planning"
+    },
+    "no_intervention": "A=blocker_first always keeps B1 final prediction; no route is ever demoted to direct",
+    "threshold": 0.75,
+    "policy_version": "b1-route-correction-r-v1"
+  },
+  "baseline": {
+    "kind": "frozen repaired A from b1_v6_routing_split0_20260930_resume8_repaired",
+    "historical_clean_equivalent": false,
+    "verification": "baseline_parity.json"
+  },
+  "data": {
+    "split": "split0 (300 cases, exposed development data; exploratory conclusions only)",
+    "pairing_key": "sceneId + queryObjId + annotation via cases.json case text",
+    "subset_usage": "audit_subset only for stratified reporting, never in policy"
+  },
+  "reachability": {
+    "branch_I": 31,
+    "branch_O": 7,
+    "file": "reachability.json"
+  },
+  "models": {
+    "planner": "mimo-v2.5 via token-plan endpoint",
+    "adjudicator": "qwen3.6-plus via dashscope compatible-mode",
+    "segmentation": "LangSAM sam1 vit_h (frozen repo settings, eghc_mask_repair_v1)",
+    "prompts": "frozen repo route prompts: target_first_evidence_gate_v9_json, hard_blocker_first_v10_json; unchanged"
+  },
+  "arms": {
+    "A": "frozen repaired A (byte-identical reuse, 0 new calls)",
+    "R": "both branches + same-ID keep-A-output rule",
+    "RI": "branch I only (development ablation)",
+    "RO": "branch O only (development ablation)"
+  },
+  "submission_rules": {
+    "untriggered": "byte-identical reuse of frozen A final result (hash-verified)",
+    "same_final_id": "keep A mask_query/class_name/mask entirely; new reasoning recorded as verification trace",
+    "different_valid_id": "submit new ID with its own new segmentation text and mask (atomic: ID+text+mask from one output)",
+    "invalid_candidate": "keep A, record candidate_invalid_keep_A",
+    "segmentation_failure_after_valid_plan": "official protocol failure for that row; no post-score fallback to A",
+    "technical_failures": "transport/auth/unknown-status -> batch stop gate; never silently retried",
+    "structural_retry": "one pre-registered fresh retry when the prediction returns no usable mask (mirrors resume8 worker)"
+  },
+  "budget": {
+    "max_external_requests": 130,
+    "max_qwen_cost_cny": 6.0,
+    "max_seconds": 10800.0,
+    "theoretical_call_ceiling": "31*2 + 7*3 = 83 calls (from real call graph of prior paid batches)",
+    "mimo_cost_reporting": "token-plan equivalent estimate only; actual plan deduction must be confirmed by user from account records"
+  },
+  "metrics": {
+    "primary": "R-A paired SSR difference",
+    "rsr_protection": "one-sided 95% lower bound above -1pp",
+    "engineering_target": "+2pp SSR net gain (target, not a prediction)",
+    "bootstrap": "scene-cluster bootstrap, 10000 resamples, seed 20261002",
+    "iou_threshold": 0.5,
+    "iou_threshold_note": "official fixed threshold; first-step acceptable GT may include blockers"
+  },
+  "code_sha256": {
+    "r_policy.py": "cd88ff9136b80a5612425014ca5862d00784126dd5a73167e454121fbbf5d142",
+    "phase0.py": "c02cd0254eaaf66161b454932e3bedf976cb989049aa3bb0247d591cbedd1087",
+    "worker.py": "4888b8a8ed451a03a24b637a2e34a1c677449f65573c375e2492b4ff60746a69",
+    "compose.py": "fe18d03e21b012ef6fcebc93d63c848bdbaf498d5ea9e716a0b0bfd287439f52",
+    "score.py": "e427d33f574e2d864c5b3d33a4b6b7b5164b8cd8815dc114f42d3977cdf735c4"
+  },
+  "source_sha256": {
+    "cases.json": "16a31dd9a928c672b7106837be79412b4491dd7969b68e2a6c696d1740e2d27e",
+    "derived_integrity.json": "9f6c24f45637585e314d01ad8b3791a3d81dd4e88d788c7758ab7df75fc29e85",
+    "repo/utils/eghc_router.py": "cbc3ac15bf9f5166d0f3b3cdb7b945f904e74fc420e700d257d4bf2c865a6669",
+    "repo/utils/utils.py": "42e8498d81af92680ec5a4aac55652beef9c7e510693bebecaee09c43e5595cf",
+    "repo/utils/eghc_adjudicator.py": "ef914c1ab90103c8c40b1f33d3152467101005b810f7df5a75c3e870834fab93"
+  }
+}

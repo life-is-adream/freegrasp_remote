@@ -1,0 +1,560 @@
+{
+  "status": "complete",
+  "experiment_id": "b1_route_correction_20261002_v1",
+  "denominator": 300,
+  "arms": {
+    "A": {
+      "arm": "A",
+      "n": 300,
+      "ssr": 161,
+      "rsr": 171,
+      "ssr_pct": 53.666666666666664,
+      "rsr_pct": 57.0,
+      "route_counts": {
+        "blocker_first": 135,
+        "direct": 110,
+        "target_first": 55
+      },
+      "outcome_counts": {
+        "null": 300
+      },
+      "external_calls": 20,
+      "coverage": {
+        "rows": 300,
+        "expected": 300,
+        "complete": true
+      }
+    },
+    "R": {
+      "arm": "R",
+      "n": 300,
+      "ssr": 162,
+      "rsr": 173,
+      "ssr_pct": 54.0,
+      "rsr_pct": 57.666666666666664,
+      "route_counts": {
+        "blocker_first": 142,
+        "direct": 79,
+        "target_first": 79
+      },
+      "outcome_counts": {
+        "id_changed_new_prediction": 6,
+        "not_triggered_shared_A": 262,
+        "same_id_keep_A_outputs": 31,
+        "segmentation_failure_official_failure": 1
+      },
+      "external_calls": 79,
+      "coverage": {
+        "rows": 300,
+        "expected": 300,
+        "complete": true
+      }
+    },
+    "RI": {
+      "arm": "RI",
+      "n": 300,
+      "ssr": 162,
+      "rsr": 173,
+      "ssr_pct": 54.0,
+      "rsr_pct": 57.666666666666664,
+      "route_counts": {
+        "blocker_first": 135,
+        "direct": 79,
+        "target_first": 86
+      },
+      "outcome_counts": {
+        "id_changed_new_prediction": 4,
+        "not_triggered_shared_A": 269,
+        "same_id_keep_A_outputs": 26,
+        "segmentation_failure_official_failure": 1
+      },
+      "external_calls": 65,
+      "coverage": {
+        "rows": 300,
+        "expected": 300,
+        "complete": true
+      }
+    },
+    "RO": {
+      "arm": "RO",
+      "n": 300,
+      "ssr": 161,
+      "rsr": 171,
+      "ssr_pct": 53.666666666666664,
+      "rsr_pct": 57.0,
+      "route_counts": {
+        "blocker_first": 142,
+        "direct": 110,
+        "target_first": 48
+      },
+      "outcome_counts": {
+        "id_changed_new_prediction": 2,
+        "not_triggered_shared_A": 293,
+        "same_id_keep_A_outputs": 5
+      },
+      "external_calls": 14,
+      "coverage": {
+        "rows": 300,
+        "expected": 300,
+        "complete": true
+      }
+    }
+  },
+  "comparisons": {
+    "A_vs_R": {
+      "ssr": {
+        "gain": 3,
+        "loss": 2,
+        "net": 1,
+        "new_minus_base_pp": 0.3333333333333333,
+        "scene_cluster_95ci_pp": [
+          -1.0033444816053512,
+          1.694915254237288
+        ]
+      },
+      "rsr": {
+        "gain": 3,
+        "loss": 1,
+        "net": 2,
+        "new_minus_base_pp": 0.6666666666666666,
+        "scene_cluster_95ci_pp": [
+          -0.6622516556291391,
+          2.0134228187919465
+        ]
+      },
+      "migrations": {
+        "route": {
+          "changed": 38,
+          "mapping": {
+            "blocker_first->blocker_first": 135,
+            "direct->direct": 79,
+            "direct->target_first": 31,
+            "target_first->blocker_first": 7,
+            "target_first->target_first": 48
+          }
+        },
+        "selected_id": {
+          "changed": 6,
+          "mapping": {
+            "1->1": 55,
+            "1->5": 1,
+            "10->10": 4,
+            "10->9": 1,
+            "11->11": 3,
+            "12->12": 2,
+            "13->13": 3,
+            "18->18": 1,
+            "19->19": 1,
+            "2->2": 46,
+            "2->3": 1,
+            "2->4": 1,
+            "20->20": 1,
+            "3->3": 50,
+            "4->4": 44,
+            "4->8": 1,
+            "5->5": 25,
+            "6->5": 1,
+            "6->6": 22,
+            "7->7": 14,
+            "8->8": 11,
+            "9->9": 12
+          }
+        }
+      }
+    },
+    "A_vs_RI": {
+      "ssr": {
+        "gain": 2,
+        "loss": 1,
+        "net": 1,
+        "new_minus_base_pp": 0.3333333333333333,
+        "scene_cluster_95ci_pp": [
+          -0.6688963210702341,
+          1.6394790767903347
+        ]
+      },
+      "rsr": {
+        "gain": 2,
+        "loss": 0,
+        "net": 2,
+        "new_minus_base_pp": 0.6666666666666666,
+        "scene_cluster_95ci_pp": [
+          0.0,
+          1.6778523489932886
+        ]
+      },
+      "migrations": {
+        "route": {
+          "changed": 31,
+          "mapping": {
+            "blocker_first->blocker_first": 135,
+            "direct->direct": 79,
+            "direct->target_first": 31,
+            "target_first->target_first": 55
+          }
+        },
+        "selected_id": {
+          "changed": 4,
+          "mapping": {
+            "1->1": 55,
+            "1->5": 1,
+            "10->10": 5,
+            "11->11": 3,
+            "12->12": 2,
+            "13->13": 3,
+            "18->18": 1,
+            "19->19": 1,
+            "2->2": 47,
+            "2->4": 1,
+            "20->20": 1,
+            "3->3": 50,
+            "4->4": 44,
+            "4->8": 1,
+            "5->5": 25,
+            "6->5": 1,
+            "6->6": 22,
+            "7->7": 14,
+            "8->8": 11,
+            "9->9": 12
+          }
+        }
+      }
+    },
+    "A_vs_RO": {
+      "ssr": {
+        "gain": 1,
+        "loss": 1,
+        "net": 0,
+        "new_minus_base_pp": 0.0,
+        "scene_cluster_95ci_pp": [
+          -0.9966777408637874,
+          0.9966777408637874
+        ]
+      },
+      "rsr": {
+        "gain": 1,
+        "loss": 1,
+        "net": 0,
+        "new_minus_base_pp": 0.0,
+        "scene_cluster_95ci_pp": [
+          -0.9966777408637874,
+          0.9966777408637874
+        ]
+      },
+      "migrations": {
+        "route": {
+          "changed": 7,
+          "mapping": {
+            "blocker_first->blocker_first": 135,
+            "direct->direct": 110,
+            "target_first->blocker_first": 7,
+            "target_first->target_first": 48
+          }
+        },
+        "selected_id": {
+          "changed": 2,
+          "mapping": {
+            "1->1": 56,
+            "10->10": 4,
+            "10->9": 1,
+            "11->11": 3,
+            "12->12": 2,
+            "13->13": 3,
+            "18->18": 1,
+            "19->19": 1,
+            "2->2": 47,
+            "2->3": 1,
+            "20->20": 1,
+            "3->3": 50,
+            "4->4": 45,
+            "5->5": 25,
+            "6->6": 23,
+            "7->7": 14,
+            "8->8": 11,
+            "9->9": 12
+          }
+        }
+      }
+    },
+    "RI_vs_RO": {
+      "ssr": {
+        "gain": 2,
+        "loss": 3,
+        "net": -1,
+        "new_minus_base_pp": -0.3333333333333333,
+        "scene_cluster_95ci_pp": [
+          -1.700825381347078,
+          1.0067114093959733
+        ]
+      },
+      "rsr": {
+        "gain": 1,
+        "loss": 3,
+        "net": -2,
+        "new_minus_base_pp": -0.6666666666666666,
+        "scene_cluster_95ci_pp": [
+          -2.0134228187919465,
+          0.6644518272425249
+        ]
+      },
+      "migrations": {
+        "route": {
+          "changed": 38,
+          "mapping": {
+            "blocker_first->blocker_first": 135,
+            "direct->direct": 79,
+            "target_first->blocker_first": 7,
+            "target_first->direct": 31,
+            "target_first->target_first": 48
+          }
+        },
+        "selected_id": {
+          "changed": 6,
+          "mapping": {
+            "1->1": 55,
+            "10->10": 4,
+            "10->9": 1,
+            "11->11": 3,
+            "12->12": 2,
+            "13->13": 3,
+            "18->18": 1,
+            "19->19": 1,
+            "2->2": 46,
+            "2->3": 1,
+            "20->20": 1,
+            "3->3": 50,
+            "4->2": 1,
+            "4->4": 44,
+            "5->1": 1,
+            "5->5": 25,
+            "5->6": 1,
+            "6->6": 22,
+            "7->7": 14,
+            "8->4": 1,
+            "8->8": 11,
+            "9->9": 12
+          }
+        }
+      }
+    }
+  },
+  "branch_stratification": {
+    "none": {
+      "n": 262,
+      "a_ssr": 138,
+      "r_ssr": 138,
+      "a_rsr": 148,
+      "r_rsr": 148
+    },
+    "I": {
+      "n": 31,
+      "a_ssr": 19,
+      "r_ssr": 20,
+      "a_rsr": 19,
+      "r_rsr": 21
+    },
+    "O": {
+      "n": 7,
+      "a_ssr": 4,
+      "r_ssr": 4,
+      "a_rsr": 4,
+      "r_rsr": 4
+    }
+  },
+  "subset_stratification_post_hoc": {
+    "A": {
+      "easy_no_ambi": {
+        "n": 50,
+        "ssr": 31,
+        "rsr": 38
+      },
+      "easy_yes_ambi": {
+        "n": 50,
+        "ssr": 33,
+        "rsr": 34
+      },
+      "hard_no_ambi": {
+        "n": 50,
+        "ssr": 16,
+        "rsr": 17
+      },
+      "hard_yes_ambi": {
+        "n": 50,
+        "ssr": 14,
+        "rsr": 16
+      },
+      "medium_no_ambi": {
+        "n": 50,
+        "ssr": 32,
+        "rsr": 33
+      },
+      "medium_yes_ambi": {
+        "n": 50,
+        "ssr": 35,
+        "rsr": 33
+      }
+    },
+    "R": {
+      "easy_no_ambi": {
+        "n": 50,
+        "ssr": 31,
+        "rsr": 38
+      },
+      "easy_yes_ambi": {
+        "n": 50,
+        "ssr": 34,
+        "rsr": 36
+      },
+      "hard_no_ambi": {
+        "n": 50,
+        "ssr": 15,
+        "rsr": 16
+      },
+      "hard_yes_ambi": {
+        "n": 50,
+        "ssr": 14,
+        "rsr": 16
+      },
+      "medium_no_ambi": {
+        "n": 50,
+        "ssr": 33,
+        "rsr": 34
+      },
+      "medium_yes_ambi": {
+        "n": 50,
+        "ssr": 35,
+        "rsr": 33
+      }
+    },
+    "RI": {
+      "easy_no_ambi": {
+        "n": 50,
+        "ssr": 31,
+        "rsr": 38
+      },
+      "easy_yes_ambi": {
+        "n": 50,
+        "ssr": 34,
+        "rsr": 36
+      },
+      "hard_no_ambi": {
+        "n": 50,
+        "ssr": 16,
+        "rsr": 17
+      },
+      "hard_yes_ambi": {
+        "n": 50,
+        "ssr": 14,
+        "rsr": 16
+      },
+      "medium_no_ambi": {
+        "n": 50,
+        "ssr": 32,
+        "rsr": 33
+      },
+      "medium_yes_ambi": {
+        "n": 50,
+        "ssr": 35,
+        "rsr": 33
+      }
+    },
+    "RO": {
+      "easy_no_ambi": {
+        "n": 50,
+        "ssr": 31,
+        "rsr": 38
+      },
+      "easy_yes_ambi": {
+        "n": 50,
+        "ssr": 33,
+        "rsr": 34
+      },
+      "hard_no_ambi": {
+        "n": 50,
+        "ssr": 15,
+        "rsr": 16
+      },
+      "hard_yes_ambi": {
+        "n": 50,
+        "ssr": 14,
+        "rsr": 16
+      },
+      "medium_no_ambi": {
+        "n": 50,
+        "ssr": 33,
+        "rsr": 34
+      },
+      "medium_yes_ambi": {
+        "n": 50,
+        "ssr": 35,
+        "rsr": 33
+      }
+    }
+  },
+  "cost": {
+    "phase1": {
+      "status": "complete",
+      "api_attempts": 6,
+      "mimo_attempts": 5,
+      "qwen_attempts": 1,
+      "qwen_cost_cny": 0.074036,
+      "mimo_equivalent_cny": 0.023366,
+      "tokens": {
+        "mimo": 22824,
+        "qwen": 8768
+      }
+    },
+    "phase2": {
+      "status": "complete",
+      "api_attempts": 73,
+      "mimo_attempts": 67,
+      "qwen_attempts": 6,
+      "qwen_cost_cny": 0.293302,
+      "mimo_equivalent_cny": 0.304336,
+      "tokens": {
+        "mimo": 297696,
+        "qwen": 39951
+      }
+    },
+    "historical_A_acquisition_reference": {
+      "run2": {
+        "api_attempts": 87,
+        "qwen_cost_cny": 4.793520000000001,
+        "mimo_equivalent_cny": 0.133284
+      },
+      "resume8": {
+        "api_attempts": 19,
+        "qwen_cost_cny": 0.305508,
+        "mimo_equivalent_cny": 0.073644
+      }
+    },
+    "notes": [
+      "mimo_equivalent_cny is a pay-as-you-go equivalence estimate only; the MiMo Token Plan actual deduction must be confirmed from account records",
+      "R deployment cost must include the full A acquisition chain, not only the new calls",
+      "qwen_cost_cny is derived from token usage at 2 CNY/M input and 12 CNY/M output"
+    ]
+  },
+  "decision_rules": {
+    "primary": "R-A paired SSR difference, scene-cluster bootstrap 95% CI",
+    "improvement": "CI lower bound > 0; small gain = 'slight improvement'; +2pp is the engineering target, not a prediction",
+    "rsr_protection": "one-sided 95% lower bound of R-A RSR above -1pp; insufficient sample -> 'insufficient evidence'",
+    "verdicts": [
+      "improved",
+      "slight_improvement",
+      "not_demonstrated",
+      "failed"
+    ]
+  },
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 20261002,
+    "cluster": "scene"
+  },
+  "claim_boundary": [
+    "split0 is exposed development data; results are exploratory, not unseen-test evidence",
+    "300 cases x arms are paired, not independent full-900 samples",
+    "simulation SSR is not physical robot grasp success",
+    "R-A differences include execution-chain variance; CI does not eliminate it"
+  ],
+  "verdict": "not_demonstrated"
+}

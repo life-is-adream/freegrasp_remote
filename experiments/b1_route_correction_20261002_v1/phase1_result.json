@@ -1,0 +1,38 @@
+{
+  "experiment_id": "b1_route_correction_20261002_v1",
+  "phase": "paid_phase_1",
+  "status": "complete",
+  "planned_new": 3,
+  "items": [
+    {
+      "case_id": "06d410435fe3ea046c332960",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "0a468793cf569a13a4b8f60e",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "0fe3f963ba57b59a1c8b5d5e",
+      "branch": "O",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    }
+  ],
+  "api_attempts": 6,
+  "mimo_attempts": 5,
+  "qwen_attempts": 1,
+  "qwen_cost_cny": 0.074036,
+  "mimo_equivalent_cny": 0.023365999999999998,
+  "http_500_retries": 0,
+  "tokens": {
+    "mimo": 22824,
+    "qwen": 8768
+  },
+  "elapsed_seconds": 128.04120898246765,
+  "last_completed": "0fe3f963ba57b59a1c8b5d5e"
+}

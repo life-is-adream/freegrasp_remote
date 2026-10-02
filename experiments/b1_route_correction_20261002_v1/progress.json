@@ -1,0 +1,230 @@
+{
+  "experiment_id": "b1_route_correction_20261002_v1",
+  "phase": "paid_phase_2",
+  "status": "complete",
+  "planned_new": 35,
+  "items": [
+    {
+      "case_id": "15b2b718a278258f7c94bf30",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 3
+    },
+    {
+      "case_id": "1d4b7c8827b5524f371cbb64",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "2e56c8d82209413cccf30017",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "35591132527cc084405bc847",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "357de9ed3cfbdc289e67209a",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "39d72f8c1be7806e88a618d5",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "4a288841a57e4b1d3d8c3b58",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "50b01422d70d56e3ba246d53",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "513b69eff08ec6fc315ad41d",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "58e125ef4d61358e7105c6f8",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "5b00917075b7fda6e7c23489",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "5ca63fa76fa3542c2900d09e",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "76e8dca462bd14c45eef9537",
+      "branch": "I",
+      "outcome": "id_changed_new_prediction",
+      "external_calls": 2
+    },
+    {
+      "case_id": "7a45da36074c56161efde8ad",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "7d243ec33e32f56b477c2a4b",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "7efe179545cbe112b53fdb29",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "7f3a9b4c95594ab8746b40ce",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "943ce03e1d4b6e38cb906def",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "986a2387efac557d899984b2",
+      "branch": "I",
+      "outcome": "id_changed_new_prediction",
+      "external_calls": 2
+    },
+    {
+      "case_id": "a121b13f2c106aef89f44aa1",
+      "branch": "I",
+      "outcome": "segmentation_failure_official_failure",
+      "external_calls": 4
+    },
+    {
+      "case_id": "b521085ee5bab67903cf2d83",
+      "branch": "I",
+      "outcome": "id_changed_new_prediction",
+      "external_calls": 2
+    },
+    {
+      "case_id": "b66b7ed90ba4a7310f99757e",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "b83e5dee2de2a166b2d84695",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "d3ff12de79e03a5838009e33",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "d4da4bccf305495017559fa5",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "d85c535f5f34de4cc1b31295",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "e81de76d9b4347735f6f9d66",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "faf27aee61c82716d162a2ee",
+      "branch": "I",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "ffad3a69a370e1da4c98db59",
+      "branch": "I",
+      "outcome": "id_changed_new_prediction",
+      "external_calls": 2
+    },
+    {
+      "case_id": "1fdbe3c7f1a1d0fbdd878d12",
+      "branch": "O",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "502c98b919a16dc482fbee0a",
+      "branch": "O",
+      "outcome": "id_changed_new_prediction",
+      "external_calls": 2
+    },
+    {
+      "case_id": "89fcbb6de97d9eaafbb0aaff",
+      "branch": "O",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "b1a13625ddfcf5c960e61787",
+      "branch": "O",
+      "outcome": "id_changed_new_prediction",
+      "external_calls": 2
+    },
+    {
+      "case_id": "cefecd320c594975c7acd8e3",
+      "branch": "O",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    },
+    {
+      "case_id": "dea446edbdb0b5f42df3c4de",
+      "branch": "O",
+      "outcome": "same_id_keep_A_outputs",
+      "external_calls": 2
+    }
+  ],
+  "api_attempts": 73,
+  "mimo_attempts": 67,
+  "qwen_attempts": 6,
+  "qwen_cost_cny": 0.29330199999999995,
+  "mimo_equivalent_cny": 0.30433600000000005,
+  "http_500_retries": 1,
+  "tokens": {
+    "mimo": 297696,
+    "qwen": 39951
+  },
+  "elapsed_seconds": 812.7476420402527,
+  "last_completed": "dea446edbdb0b5f42df3c4de"
+}

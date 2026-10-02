@@ -1,0 +1,38 @@
+{
+  "status": "PASS",
+  "cases": 300,
+  "derived_masks_verified": 900,
+  "derived_files_hashed": 1800,
+  "shared_predictions_checked": 821,
+  "api_attempts": 0,
+  "gpu_calls": 0,
+  "original_rgb_shapes": {
+    "(1200, 1200)": 300
+  },
+  "plan_counts": {
+    "A": {
+      "shared_A": 300
+    },
+    "D": {
+      "shared_A": 254,
+      "requires_new_prediction": 46
+    },
+    "E": {
+      "shared_A": 267,
+      "requires_new_prediction": 33
+    }
+  },
+  "historical_baseline_parity": "NOT_PASS_KNOWN_6_ID_DIFFERENCES",
+  "baseline_policy": "explicit current repaired A; historical clean equivalence is not claimed",
+  "method_status": "post_hoc_repair_not_prospectively_evaluated",
+  "new_success_rate": null,
+  "paid_started": false,
+  "router_prompt_hit": false,
+  "code_sha256": {
+    "execution.py": "96338567d4339016965ff1013f07f1b8b3de01309f88f69cc9d7b732668d8a81",
+    "runner.py": "cb5be4bd545b445fa7157c7f61fc7015dc3034a0c9f0aa429a22aa1e2beba4f7",
+    "safe_policy.py": "cd8eeaaf1ed4b7fd959f187924dc6e8f8c03766686fe4a989be177f0117c0775",
+    "test_repair.py": "9bec47c101c9ba2dcb073cf8820eb54f0c9650d4936e5e36b60fa1a48e2b290a",
+    "legacy_policy.py": "49d814d4ec9ccd2b879b3f80c3d4ae2ff9280cee16f7b2daba34a74869d53cb3"
+  }
+}
